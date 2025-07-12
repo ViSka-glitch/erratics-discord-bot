@@ -1,4 +1,5 @@
+discord.py==2.3.2
 python-dotenv==1.0.1
-discord.py
-qrcode[pil]
-Pillow
+aiohttp==3.9.5
+colorama==0.4.6
+loguru==0.7.2
