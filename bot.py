@@ -3,9 +3,13 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
+import os
+from dotenv import load_dotenv
 
-# Achtung: Token hier hartkodiert, nur lokal verwenden!
-BOT_TOKEN = "MTM4NzY1NTkyNzI4NDQ5ODUwNA.GL3r0A.SBCOj1neZLmgGfjC_sq751_30Zg1nkxPFhZ-_s"
+load_dotenv()
+
+TOKEN = os.getenv("TOKEN")
+PREFIX = os.getenv("PREFIX", "!")
 
 intents = discord.Intents.default()
 intents.members = True
@@ -34,7 +38,7 @@ async def load_extensions():
         "cogs.layout",
         "cogs.reactions",
         "events.on_ready",
-        "events.on_channel"
+        "events.on_channel",
         "events.on_member_join"  # <--- hier ergänzen
     ]
     for ext in extensions:
@@ -48,7 +52,7 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        await bot.start(BOT_TOKEN)
+        await bot.start(TOKEN)
 
 if __name__ == "__main__":
     asyncio.run(main())
