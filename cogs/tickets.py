@@ -6,12 +6,18 @@ class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def cog_load(self):
+        # Register the slash command when this cog is loaded
+        self.bot.tree.add_command(self.set_ticket_panel)
+
     @app_commands.command(name="setticketpanel", description="Send a ticket panel to the current channel.")
     async def set_ticket_panel(self, interaction: discord.Interaction):
+        # Check for permission
         if not interaction.user.guild_permissions.manage_channels:
             await interaction.response.send_message("❌ You don't have permission to do this.", ephemeral=True)
             return
 
+        # Create embed for the panel
         embed = discord.Embed(
             title="🎟️ Need Help?",
             description="Click the button below to create a support ticket.\nOur team will assist you as soon as possible.",
@@ -28,9 +34,11 @@ class TicketCreateView(ui.View):
         guild = interaction.guild
         author = interaction.user
 
+        # Find support category and role
         category = discord.utils.get(guild.categories, name="🎫│support-tickets")
         support_role = discord.utils.get(guild.roles, name="🔧 Support")
 
+        # Set permissions for the ticket channel
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             author: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -39,6 +47,7 @@ class TicketCreateView(ui.View):
         if support_role:
             overwrites[support_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
+        # Create the ticket channel
         ticket_channel = await guild.create_text_channel(
             name=f"ticket-{author.name}",
             category=category,
@@ -46,6 +55,7 @@ class TicketCreateView(ui.View):
             topic=f"Support ticket for {author.display_name}"
         )
 
+        # Send confirmation with close button
         await ticket_channel.send(
             f"🎟️ {author.mention}, your ticket has been created.",
             view=TicketCloseView()
@@ -58,6 +68,7 @@ class TicketCloseView(ui.View):
 
     @ui.button(label="🗑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        # Notify and close the ticket channel
         await interaction.response.send_message("⚠️ This ticket will be closed in 5 seconds...", ephemeral=True)
         await discord.utils.sleep_until(discord.utils.utcnow() + discord.utils.timedelta(seconds=5))
         try:
