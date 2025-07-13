@@ -35,6 +35,7 @@ async def status(ctx):
 async def load_extensions():
     extensions = [
         "cogs.basic",
+        "cogs.welcomer",
         "cogs.layout",
         "cogs.reactions",
         "events.on_ready",
