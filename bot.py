@@ -37,6 +37,7 @@ async def load_extensions():
         "cogs.basic",
         "cogs.welcomer",
         "cogs.layout",
+        "cogs.mod",
         "cogs.reactions",
         "events.on_ready",
         "events.on_channel",
