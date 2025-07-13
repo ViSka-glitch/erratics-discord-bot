@@ -6,9 +6,7 @@ class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_load(self):
         # Register the slash command when this cog is loaded
-        self.bot.tree.add_command(self.set_ticket_panel)
 
     @app_commands.command(name="setticketpanel", description="Send a ticket panel to the current channel.")
     async def set_ticket_panel(self, interaction: discord.Interaction):
