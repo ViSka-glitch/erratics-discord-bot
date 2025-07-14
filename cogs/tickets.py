@@ -1,78 +1,100 @@
 import discord
 from discord.ext import commands
-from discord import ui, app_commands
+from discord import ui
+import io
 
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.active_tickets = {}
 
-        # Register the slash command when this cog is loaded
-
-    @app_commands.command(name="setticketpanel", description="Send a ticket panel to the current channel.")
-    async def set_ticket_panel(self, interaction: discord.Interaction):
-        # Check for permission
-        if not interaction.user.guild_permissions.manage_channels:
-            await interaction.response.send_message("❌ You don't have permission to do this.", ephemeral=True)
+    @commands.Cog.listener()
+    async def on_ready(self):
+        channel = discord.utils.get(self.bot.get_all_channels(), name="📨│open-a-ticket")
+        if not channel:
+            print("❌ Channel '📨│open-a-ticket' not found.")
             return
 
-        # Create embed for the panel
+        # Check if message already exists
+        async for msg in channel.history(limit=50):
+            if msg.author == self.bot.user and msg.components:
+                print("✅ Ticket panel already exists.")
+                return
+
+        # Create the panel
         embed = discord.Embed(
-            title="🎟️ Need Help?",
-            description="Click the button below to create a support ticket.\nOur team will assist you as soon as possible.",
+            title="🎟️ Need Support?",
+            description="Click the button below to open a private support ticket.\nOur team will respond as soon as possible.",
             color=discord.Color.blurple()
         )
-        await interaction.response.send_message(embed=embed, view=TicketCreateView(), ephemeral=True)
+        await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
 
 class TicketCreateView(ui.View):
-    def __init__(self):
+    def __init__(self, bot, active_tickets):
         super().__init__(timeout=None)
+        self.bot = bot
+        self.active_tickets = active_tickets
 
     @ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        user = interaction.user
         guild = interaction.guild
-        author = interaction.user
 
-        # Find support category and role
-        category = discord.utils.get(guild.categories, name="🎫│support-tickets")
-        support_role = discord.utils.get(guild.roles, name="🔧 Support")
+        if user.id in self.active_tickets:
+            await interaction.response.send_message("⚠️ You already have an open ticket.", ephemeral=True)
+            return
 
-        # Set permissions for the ticket channel
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            author: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-        }
-
-        if support_role:
-            overwrites[support_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-
-        # Create the ticket channel
-        ticket_channel = await guild.create_text_channel(
-            name=f"ticket-{author.name}",
-            category=category,
-            overwrites=overwrites,
-            topic=f"Support ticket for {author.display_name}"
+        log_channel = discord.utils.get(guild.text_channels, name="ticket-logs")
+        thread = await interaction.channel.create_thread(
+            name=f"ticket-{user.name}",
+            type=discord.ChannelType.private_thread,
+            invitable=False
         )
 
-        # Send confirmation with close button
-        await ticket_channel.send(
-            f"🎟️ {author.mention}, your ticket has been created.",
-            view=TicketCloseView()
-        )
+        self.active_tickets[user.id] = thread.id
+
+        # Send welcome message
+        await thread.send(f"🎟️ {user.mention}, welcome!\nPlease describe your issue here.")
+        await thread.send(view=TicketCloseView(self.bot, self.active_tickets, user.id))
+
+        # Log ticket creation
+        if log_channel:
+            await log_channel.send(f"📥 Ticket opened by {user.mention} in {thread.mention}")
+
         await interaction.response.send_message("✅ Your ticket has been created.", ephemeral=True)
 
 class TicketCloseView(ui.View):
-    def __init__(self):
+    def __init__(self, bot, active_tickets, user_id):
         super().__init__(timeout=None)
+        self.bot = bot
+        self.active_tickets = active_tickets
+        self.user_id = user_id
 
     @ui.button(label="🗑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        # Notify and close the ticket channel
-        await interaction.response.send_message("⚠️ This ticket will be closed in 5 seconds...", ephemeral=True)
-        await discord.utils.sleep_until(discord.utils.utcnow() + discord.utils.timedelta(seconds=5))
-        try:
-            await interaction.channel.delete()
-        except discord.Forbidden:
-            await interaction.followup.send("❌ I don't have permission to delete this channel.", ephemeral=True)
+        thread = interaction.channel
+        log_channel = discord.utils.get(thread.guild.text_channels, name="🔒-ticket-logs")
+
+        await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
+
+        # Collect transcript
+        transcript = ""
+        async for msg in thread.history(limit=None, oldest_first=True):
+            author = msg.author.name
+            content = msg.content
+            transcript += f"{author}: {content}\n"
+
+        # Send transcript
+        if log_channel:
+            buffer = io.BytesIO(transcript.encode("utf-8"))
+            file = discord.File(fp=buffer, filename=f"{thread.name}-transcript.txt")
+            await log_channel.send(f"📤 Ticket closed by {interaction.user.mention}", file=file)
+
+        # Cleanup
+        if self.user_id in self.active_tickets:
+            del self.active_tickets[self.user_id]
+
+        await thread.delete()
 
 async def setup(bot):
     await bot.add_cog(TicketSystem(bot))
