@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime
+import qrcode
+from io import BytesIO
 
 class Basic(commands.Cog):
     def __init__(self, bot):
@@ -31,6 +33,25 @@ class Basic(commands.Cog):
             await interaction.response.send_message("✅ Help sent to your DMs!", ephemeral=True)
         except discord.Forbidden:
             await interaction.response.send_message("❌ I couldn't send you a DM. Please check your privacy settings.", ephemeral=True)
+
+    @app_commands.command(name="serverinvite", description="Generate a permanent invite link and QR code.")
+    async def serverinvite(self, interaction: discord.Interaction):
+        invite = await interaction.channel.create_invite(max_age=0, max_uses=0, unique=True)
+        qr = qrcode.make(invite.url)
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+        buffer.seek(0)
+        file = discord.File(buffer, filename="invite_qr.png")
+
+        embed = discord.Embed(
+            title="🌐 You're invited to Erratics!",
+            description=f"Join the server with [this invite link]({invite.url}) or scan the QR code below.",
+            color=discord.Color.blue()
+        )
+        embed.set_image(url="attachment://invite_qr.png")
+        embed.set_footer(text="Powered by PixelGear.gg • Gaming. Merch. Gear Up!")
+
+        await interaction.response.send_message(embed=embed, file=file)
 
 async def setup(bot):
     await bot.add_cog(Basic(bot))
