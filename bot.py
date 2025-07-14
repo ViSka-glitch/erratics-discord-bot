@@ -46,8 +46,7 @@ async def load_extensions():
         "cogs.developer",
         "cogs.reactions",
         "events.on_ready",
-        "events.on_channel",
-        "events.on_member_join"  # <--- hier ergänzen
+        "events.on_channel"
     ]
     for ext in extensions:
         try:
