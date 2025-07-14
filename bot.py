@@ -40,6 +40,7 @@ async def load_extensions():
         "cogs.layout",
         "cogs.mod",
         "cogs.tickets",
+        "cogs.info",
         "cogs.system",
         "cogs.developer",
         "cogs.reactions",
