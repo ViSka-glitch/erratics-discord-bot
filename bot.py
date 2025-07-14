@@ -19,6 +19,7 @@ intents.messages = True
 intents.reactions = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+bot.owner_id = int(os.getenv("OWNER_ID"))
 
 
 # --- Event: Bot gestartet ---
@@ -40,6 +41,7 @@ async def load_extensions():
         "cogs.mod",
         "cogs.tickets",
         "cogs.system",
+        "cogs.developer",
         "cogs.reactions",
         "events.on_ready",
         "events.on_channel",
