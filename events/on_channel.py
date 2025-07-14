@@ -1,6 +1,7 @@
-# --- events/on_channel.py ---
 import discord
 from discord.ext import commands
+
+BOT_ROLE_ID = 1392804905353347163  # 🤖 Bot role ID
 
 class OnChannelCreate(commands.Cog):
     def __init__(self, bot):
@@ -8,13 +9,15 @@ class OnChannelCreate(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
+        """Automatically assigns permissions to the 🤖 Bot role when a new channel is created."""
         if not isinstance(channel.guild, discord.Guild):
             return
 
-        bot_role = discord.utils.get(channel.guild.roles, name="🤖 Bot")
+        bot_role = channel.guild.get_role(BOT_ROLE_ID)
         if not bot_role:
             return
 
+        # Define permissions based on channel type
         perms = None
         if isinstance(channel, discord.TextChannel):
             perms = discord.PermissionOverwrite(
@@ -33,6 +36,7 @@ class OnChannelCreate(commands.Cog):
                 use_voice_activation=True
             )
 
+        # Apply permissions if valid
         if perms:
             await channel.set_permissions(bot_role, overwrite=perms)
 

@@ -2,10 +2,11 @@ import discord
 from discord.ext import commands
 from discord import ui
 
-# Channel IDs (replace if changed on Discord)
-WELCOME_CHANNEL_ID = 1392804912684863549
-LOG_CHANNEL_ID = 1392804950320480326
-QUICKSTART_CHANNEL_ID = 1392804914178166855
+# Channel and Role IDs
+WELCOME_CHANNEL_ID = 1392804912684863549        # 📡│transmission-incoming
+LOG_CHANNEL_ID = 1392804950320480326            # 🔒│classified-logs
+QUICKSTART_CHANNEL_ID = 1392804914178166855     # 🧬│initiate-sequence
+MEMBER_ROLE_ID = 1392804906804707369            # 🎖️ Member
 
 class Welcomer(commands.Cog):
     def __init__(self, bot):
@@ -36,7 +37,6 @@ class Welcomer(commands.Cog):
 
         view = ConfirmView(member)
         await welcome_channel.send(content=member.mention, embed=embed, view=view)
-
         await log_channel.send(f"🟢 {member.mention} (`{member}`) joined the server.")
 
 class ConfirmView(ui.View):
@@ -49,6 +49,15 @@ class ConfirmView(ui.View):
         if interaction.user.id != self.member.id:
             await interaction.response.send_message("⛔ You cannot confirm for someone else.", ephemeral=True)
             return
+
+        # Attempt to assign the role
+        role = interaction.guild.get_role(MEMBER_ROLE_ID)
+        if role:
+            try:
+                await self.member.add_roles(role, reason="Confirmed entry via welcome button")
+            except discord.Forbidden:
+                await interaction.response.send_message("⚠️ I couldn't assign your role. Please contact staff.", ephemeral=True)
+                return
 
         await interaction.response.send_message(
             f"✅ Welcome aboard, {self.member.mention}. Your upload has been acknowledged.",

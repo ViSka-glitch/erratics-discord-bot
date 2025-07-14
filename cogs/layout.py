@@ -1,77 +1,63 @@
-# --- cogs/layout.py ---
 import discord
 from discord.ext import commands
-from datetime import datetime
+from discord import app_commands
 
-class LayoutSetup(commands.Cog):
+class Layout(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    async def setup_layout(self, ctx):
-        guild = ctx.guild
-        bot_role = discord.utils.get(guild.roles, name="🤖 Bot")
-        if not bot_role:
-            bot_role = await guild.create_role(name="🤖 Bot", colour=discord.Colour.dark_grey())
+    def is_owner():
+        """Check if the user is the bot owner."""
+        async def predicate(interaction: discord.Interaction) -> bool:
+            return await interaction.client.is_owner(interaction.user)
+        return app_commands.check(predicate)
+
+    @app_commands.command(name="setup_layout", description="Create standard server layout (Owner only).")
+    @is_owner()
+    async def setup_layout(self, interaction: discord.Interaction):
+        """Creates predefined categories and channels for the server."""
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
 
         categories = {
-            "🛰️│system": [
-                ("🛰️│system-logs", "Log system events", 0),
-                ("🧠│initiate-sequence", "Rules and landing", 0)
-            ],
-            "🌐│community": [
-                ("💬│general", "Talk freely", 0),
-                ("📸│media", "Share screenshots and clips", 5)
-            ],
-            "🔊│voice": [
-                ("🔊│general-voice", None, 0)
-            ]
+            "🛰 Transmission": ["📡│transmission-incoming", "🛰️│system-logs"],
+            "👤 Uplink Access": ["📨│open-a-ticket", "📃│rules", "🔧│settings"],
+            "🧠 Knowledge Base": ["📚│guides", "💾│resources"],
+            "🌐 General": ["💬│general", "📸│media"],
         }
 
-        text_perms = discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            manage_messages=True,
-            embed_links=True,
-            attach_files=True,
-            read_message_history=True,
-            use_application_commands=True
-        )
-        voice_perms = discord.PermissionOverwrite(
-            connect=True,
-            speak=True,
-            use_voice_activation=True
-        )
+        created = []
 
-        for category_name, channels in categories.items():
-            category = discord.utils.get(guild.categories, name=category_name)
+        for cat_name, channels in categories.items():
+            category = discord.utils.get(guild.categories, name=cat_name)
             if not category:
-                category = await guild.create_category(category_name)
+                category = await guild.create_category(name=cat_name)
 
-            for name, topic, slowmode in channels:
-                existing = discord.utils.get(category.channels, name=name)
-                if existing:
-                    continue
+            for chan in channels:
+                if not discord.utils.get(guild.text_channels, name=chan):
+                    await guild.create_text_channel(name=chan, category=category)
+                    created.append(f"#{chan}")
 
-                if "voice" in name:
-                    channel = await guild.create_voice_channel(name=name, category=category)
-                    await channel.set_permissions(bot_role, overwrite=voice_perms)
-                else:
-                    channel = await guild.create_text_channel(name=name, topic=topic, slowmode_delay=slowmode, category=category)
-                    await channel.set_permissions(bot_role, overwrite=text_perms)
+        await interaction.followup.send(
+            f"✅ Layout created. Channels: {', '.join(created)}" if created else "⚠️ No new channels were created.",
+            ephemeral=True
+        )
 
-        await ctx.send("✅ Layout erfolgreich eingerichtet.")
-
-    @commands.command()
-    async def landingpage(self, ctx):
+    @app_commands.command(name="landingpage", description="Send the server landing message.")
+    @is_owner()
+    async def landingpage(self, interaction: discord.Interaction):
+        """Sends a welcome embed in the current channel."""
         embed = discord.Embed(
             title="🚀 Welcome to the Server!",
-            description=("Prepare yourself, Commander. You're entering a world of chaos, tech and strategy.\n"
-                         "React with ✅ to accept the rules and get started."),
-            color=discord.Color.orange()
+            description=(
+                "This is your digital home base.\n"
+                "Read the rules in `📃│rules` and open a ticket in `📨│open-a-ticket` if you need help."
+            ),
+            color=discord.Color.blue()
         )
-        embed.set_footer(text="Initiate Sequence | erratics ⚙️")
-        await ctx.send(embed=embed)
+        embed.set_footer(text="Automated Landing Page • Layout Setup")
+
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
-    await bot.add_cog(LayoutSetup(bot))
+    await bot.add_cog(Layout(bot))

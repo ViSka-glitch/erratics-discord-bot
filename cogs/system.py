@@ -6,6 +6,7 @@ import time
 import platform
 import datetime
 
+# Store the bot start time to calculate uptime
 start_time = time.time()
 
 class System(commands.Cog):
@@ -14,13 +15,15 @@ class System(commands.Cog):
 
     @app_commands.command(name="uptime", description="Show how long the bot has been running.")
     async def uptime(self, interaction: discord.Interaction):
+        """Returns the bot's uptime in HH:MM:SS format."""
         current_time = time.time()
         uptime_seconds = int(current_time - start_time)
         uptime_str = str(datetime.timedelta(seconds=uptime_seconds))
-        await interaction.response.send_message(f"🕒 Uptime: `{uptime_str}`", ephemeral=False)
+        await interaction.response.send_message(f"🕒 Uptime: `{uptime_str}`")
 
     @app_commands.command(name="shutdown", description="Shut down the bot (Owner only).")
     async def shutdown(self, interaction: discord.Interaction):
+        """Allows only the owner to shut down the bot."""
         if not await self._is_owner(interaction):
             await interaction.response.send_message("❌ You are not authorized to do this.", ephemeral=True)
             return
@@ -29,6 +32,7 @@ class System(commands.Cog):
 
     @app_commands.command(name="botstats", description="Show memory, CPU and ping stats.")
     async def botstats(self, interaction: discord.Interaction):
+        """Displays system statistics like memory, CPU and latency."""
         mem = psutil.virtual_memory()
         cpu = psutil.cpu_percent()
         latency = round(self.bot.latency * 1000)
@@ -42,6 +46,7 @@ class System(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     async def _is_owner(self, interaction: discord.Interaction) -> bool:
+        """Internal check to confirm if user is the bot owner."""
         return interaction.user.id == self.bot.owner_id
 
 async def setup(bot):
