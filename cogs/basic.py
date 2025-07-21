@@ -51,7 +51,8 @@ class Basic(commands.Cog):
         embed.set_image(url="attachment://invite_qr.png")
         embed.set_footer(text="Powered by PixelGear.gg • Gaming. Merch. Gear Up!")
 
-        await interaction.response.send_message(embed=embed, file=file)
+        await interaction.user.send(embed=embed, file=file)
+
 
 async def setup(bot):
     await bot.add_cog(Basic(bot))
