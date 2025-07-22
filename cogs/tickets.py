@@ -75,15 +75,6 @@ class TicketSystem(commands.Cog):
         await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
         print("📨 Ticket panel sent.")
 
-        embed = discord.Embed(
-
-            title="🎟️ Need Support?",
-    description=(
-        "Click the button below to open a private support ticket."
-        "Our team will respond as soon as possible."
-    ),
-            ephemeral=True
-        )
 
 class CategorySelectView(ui.View):
     def __init__(self, bot, active_tickets):
