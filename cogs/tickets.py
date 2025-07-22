@@ -12,6 +12,7 @@ MOD_ROLE_ID = 1392804903268651104
 TICKET_ARCHIVE_CATEGORY_ID = 1397321789733994636
 TICKET_STORAGE_PATH = Path("tickets.json")
 AUTO_CLOSE_MINUTES = 30
+ARCHIVE_DELAY_SECONDS = 15
 
 CATEGORY_CHOICES = {
     "valheim": {"label": "🪓 Valheim", "emoji": "🪓"},
@@ -182,14 +183,19 @@ class CloseSolvedButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(CloseReasonModal(self.parent_view, self.solved, interaction.user))
 
-class CloseReasonModal(ui.Modal, title="Close Ticket"):
-    reason = ui.TextInput(label="Why are you closing this ticket?", required=False, max_length=200)
-
+class CloseReasonModal(ui.Modal):
     def __init__(self, parent_view, solved, closer):
-        super().__init__()
+        super().__init__(title="Close Ticket")
         self.parent_view = parent_view
         self.solved = solved
         self.closer = closer
+        self.reason = ui.TextInput(
+            label="Why are you closing this ticket? (optional)",
+            required=False,
+            max_length=200,
+            style=discord.TextStyle.paragraph
+        )
+        self.add_item(self.reason)
 
     async def on_submit(self, interaction: discord.Interaction):
         channel = interaction.channel
@@ -202,7 +208,9 @@ class CloseReasonModal(ui.Modal, title="Close Ticket"):
 
         await channel.edit(name=f"closed-ticket-{self.closer.name}", category=archive_category, reason="Ticket closed")
 
-        await asyncio.sleep(5)
+        await interaction.response.send_message(f"✅ Ticket closed. This channel will be archived in {ARCHIVE_DELAY_SECONDS} seconds.", ephemeral=True)
+
+        await asyncio.sleep(ARCHIVE_DELAY_SECONDS)
         member = guild.get_member(self.parent_view.user_id)
         if member:
             overwrite = channel.overwrites_for(member)
@@ -221,8 +229,6 @@ class CloseReasonModal(ui.Modal, title="Close Ticket"):
                 embed.add_field(name="Reason", value=self.reason.value, inline=False)
             embed.add_field(name="Channel", value=channel.mention, inline=False)
             await log_channel.send(embed=embed)
-
-        await interaction.response.send_message("✅ Ticket successfully closed.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(TicketSystem(bot))
