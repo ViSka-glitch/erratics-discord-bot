@@ -46,28 +46,15 @@ class TicketSystem(commands.Cog):
 
         async for msg in channel.history(limit=50):
             if msg.author == self.bot.user and msg.components:
-                print("✅ Ticket panel already exists.")
-                return
+                await msg.delete()
+                print("♻️ Old ticket panel deleted.")
 
         embed = discord.Embed(
             title="🎟️ Need Support?",
-            description="Click the button below to open a private support ticket.\nOur team will respond as soon as possible.",
-            color=discord.Color.blurple()
-        )
-        await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
-        print("📨 Ticket panel sent.")
-
-class TicketCreateView(ui.View):
-    def __init__(self, bot, active_tickets):
-        super().__init__(timeout=None)
-        self.bot = bot
-        self.active_tickets = active_tickets
-
-    @ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
-    async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message(
-            "Please select a support category:",
-            view=CategorySelectView(self.bot, self.active_tickets),
+            description=(
+                "Click the button below to open a private support ticket."
+                "Our team will respond as soon as possible."
+            ),
             ephemeral=True
         )
 
@@ -88,7 +75,7 @@ class CategoryButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user = interaction.user
-        guild = interaction.guild
+        guild = interaction.channel.guild
 
         if str(user.id) in self.active_tickets:
             await interaction.response.send_message("⚠️ You already have an open ticket.", ephemeral=True)
@@ -153,7 +140,7 @@ class TicketCloseView(ui.View):
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
         try:
             channel = interaction.channel
-            guild = interaction.guild
+            guild = channel.guild
             log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
 
             await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
