@@ -9,6 +9,7 @@ from pathlib import Path
 TICKET_PANEL_CHANNEL_ID = 1393966439429312652
 TICKET_LOG_CHANNEL_ID = 1394395965011791872
 MOD_ROLE_ID = 1392804903268651104
+TICKET_ARCHIVE_CATEGORY_ID = 1397304814366621766
 TICKET_STORAGE_PATH = Path("tickets.json")
 AUTO_CLOSE_MINUTES = 30
 
@@ -134,7 +135,7 @@ class CategoryButton(ui.Button):
                     file = discord.File(fp=buffer, filename=f"{ticket_channel.name}-transcript.txt")
                     await log_channel.send(f"⏳ Ticket auto-closed due to inactivity.", file=file)
 
-                await ticket_channel.delete(reason="Auto-close after inactivity")
+                await ticket_channel.edit(name=f"closed-ticket-{user.name}", category=guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID), reason="Auto-close")
                 del self.active_tickets[str(user.id)]
                 save_active_tickets(self.active_tickets)
 
@@ -152,7 +153,8 @@ class TicketCloseView(ui.View):
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
         try:
             channel = interaction.channel
-            log_channel = channel.guild.get_channel(TICKET_LOG_CHANNEL_ID)
+            guild = interaction.guild
+            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
 
             await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
 
@@ -169,7 +171,7 @@ class TicketCloseView(ui.View):
                 del self.active_tickets[str(self.user_id)]
                 save_active_tickets(self.active_tickets)
 
-            await channel.delete()
+            await channel.edit(name=f"closed-ticket-{interaction.user.name}", category=guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID), reason="Ticket closed")
         except Exception as e:
             print(f"❌ ERROR in close_ticket: {repr(e)}")
             try:
