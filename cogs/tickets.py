@@ -31,6 +31,21 @@ def save_active_tickets(tickets):
     with TICKET_STORAGE_PATH.open("w") as f:
         json.dump({"active_tickets": tickets}, f, indent=4)
 
+class TicketCreateView(ui.View):
+    def __init__(self, bot, active_tickets):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.active_tickets = active_tickets
+
+    @ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
+    async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_message(
+            "Please select a support category:",
+            view=CategorySelectView(self.bot, self.active_tickets),
+            ephemeral=True
+        )
+
+
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -55,6 +70,18 @@ class TicketSystem(commands.Cog):
                 "Click the button below to open a private support ticket."
                 "Our team will respond as soon as possible."
             ),
+            color=discord.Color.blurple()
+        )
+        await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
+        print("📨 Ticket panel sent.")
+
+        embed = discord.Embed(
+
+            title="🎟️ Need Support?",
+    description=(
+        "Click the button below to open a private support ticket."
+        "Our team will respond as soon as possible."
+    ),
             ephemeral=True
         )
 
