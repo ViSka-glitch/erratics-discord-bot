@@ -151,7 +151,6 @@ class CategoryButton(ui.Button):
                 await ticket_channel.edit(name=f"closed-ticket-{user.name}", category=archive_category, reason="Auto-close")
 
                 await asyncio.sleep(5)
-                # Revoke view access from user
                 overwrite = ticket_channel.overwrites_for(user)
                 overwrite.view_channel = False
                 await ticket_channel.set_permissions(user, overwrite=overwrite)
@@ -168,55 +167,62 @@ class TicketCloseView(ui.View):
         self.bot = bot
         self.active_tickets = active_tickets
         self.user_id = user_id
-        self.add_item(TicketCloseButton(self))
+        self.add_item(CloseSolvedButton(self, solved=True))
+        self.add_item(CloseSolvedButton(self, solved=False))
 
-class TicketCloseButton(ui.Button):
-    def __init__(self, parent_view):
-        super().__init__(label="🖑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
+class CloseSolvedButton(ui.Button):
+    def __init__(self, parent_view, solved):
+        label = "✅ Solved" if solved else "❌ Not Solved"
+        style = discord.ButtonStyle.success if solved else discord.ButtonStyle.danger
+        custom_id = "close_solved" if solved else "close_unsolved"
+        super().__init__(label=label, style=style, custom_id=custom_id)
         self.parent_view = parent_view
+        self.solved = solved
 
     async def callback(self, interaction: discord.Interaction):
-        try:
-            channel = interaction.channel
-            guild = channel.guild
-            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+        await interaction.response.send_modal(CloseReasonModal(self.parent_view, self.solved, interaction.user))
 
-            await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
+class CloseReasonModal(ui.Modal, title="Close Ticket"):
+    reason = ui.TextInput(label="Why are you closing this ticket?", required=False, max_length=200)
 
-            transcript = ""
-            async for msg in channel.history(limit=None, oldest_first=True):
-                transcript += f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author.name}: {msg.content}\n"
+    def __init__(self, parent_view, solved, closer):
+        super().__init__()
+        self.parent_view = parent_view
+        self.solved = solved
+        self.closer = closer
 
-            if log_channel:
-                buffer = io.BytesIO(transcript.encode("utf-8"))
-                file = discord.File(fp=buffer, filename=f"{channel.name}-transcript.txt")
-                await log_channel.send(f"📄 Ticket closed by {interaction.user.mention}", file=file)
+    async def on_submit(self, interaction: discord.Interaction):
+        channel = interaction.channel
+        guild = channel.guild
+        log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
 
-            archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
-            if not isinstance(archive_category, discord.CategoryChannel):
-                print(f"❌ ERROR: Channel ID {TICKET_ARCHIVE_CATEGORY_ID} is not a category.")
-                return await interaction.followup.send("⚠️ Ticket archive category is invalid or missing.", ephemeral=True)
+        archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
+        if not isinstance(archive_category, discord.CategoryChannel):
+            return await interaction.response.send_message("⚠️ Ticket archive category is invalid or missing.", ephemeral=True)
 
-            await channel.edit(name=f"closed-ticket-{interaction.user.name}", category=archive_category, reason="Ticket closed")
+        await channel.edit(name=f"closed-ticket-{self.closer.name}", category=archive_category, reason="Ticket closed")
 
-            await asyncio.sleep(5)
-            # Revoke view access from ticket creator
-            member = guild.get_member(self.parent_view.user_id)
-            if member:
-                overwrite = channel.overwrites_for(member)
-                overwrite.view_channel = False
-                await channel.set_permissions(member, overwrite=overwrite)
+        await asyncio.sleep(5)
+        member = guild.get_member(self.parent_view.user_id)
+        if member:
+            overwrite = channel.overwrites_for(member)
+            overwrite.view_channel = False
+            await channel.set_permissions(member, overwrite=overwrite)
 
-            if str(self.parent_view.user_id) in self.parent_view.active_tickets:
-                del self.parent_view.active_tickets[str(self.parent_view.user_id)]
-                save_active_tickets(self.parent_view.active_tickets)
+        if str(self.parent_view.user_id) in self.parent_view.active_tickets:
+            del self.parent_view.active_tickets[str(self.parent_view.user_id)]
+            save_active_tickets(self.parent_view.active_tickets)
 
-        except Exception as e:
-            print(f"❌ ERROR in close_ticket: {repr(e)}")
-            try:
-                await interaction.response.send_message("❌ Failed to close ticket.", ephemeral=True)
-            except:
-                await interaction.followup.send("❌ Failed to close ticket.", ephemeral=True)
+        if log_channel:
+            embed = discord.Embed(title="📄 Ticket Closed", color=discord.Color.red() if not self.solved else discord.Color.green())
+            embed.add_field(name="Closed by", value=self.closer.mention, inline=False)
+            embed.add_field(name="Status", value="✅ Solved" if self.solved else "❌ Not Solved", inline=True)
+            if self.reason.value:
+                embed.add_field(name="Reason", value=self.reason.value, inline=False)
+            embed.add_field(name="Channel", value=channel.mention, inline=False)
+            await log_channel.send(embed=embed)
+
+        await interaction.response.send_message("✅ Ticket successfully closed.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(TicketSystem(bot))
