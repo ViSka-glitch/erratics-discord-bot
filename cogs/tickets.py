@@ -36,15 +36,20 @@ class TicketCreateView(ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         self.active_tickets = active_tickets
+        self.add_item(OpenTicketButton(bot, active_tickets))
 
-    @ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
-    async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
+class OpenTicketButton(ui.Button):
+    def __init__(self, bot, active_tickets):
+        super().__init__(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
+        self.bot = bot
+        self.active_tickets = active_tickets
+
+    async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_message(
             "Please select a support category:",
             view=CategorySelectView(self.bot, self.active_tickets),
             ephemeral=True
         )
-
 
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
@@ -74,7 +79,6 @@ class TicketSystem(commands.Cog):
         )
         await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
         print("📨 Ticket panel sent.")
-
 
 class CategorySelectView(ui.View):
     def __init__(self, bot, active_tickets):
@@ -116,9 +120,9 @@ class CategoryButton(ui.Button):
 
         mod_ping = f"<@&{MOD_ROLE_ID}>"
         await ticket_channel.send(
-    content=f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.",
-    view=TicketCloseView(self.bot, self.active_tickets, user.id)
-)
+            content=f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.",
+            view=TicketCloseView(self.bot, self.active_tickets, user.id)
+        )
 
         await interaction.response.send_message(f"✅ Ticket for {CATEGORY_CHOICES[self.category_key]['label']} created!", ephemeral=True)
 
@@ -131,69 +135,53 @@ class CategoryButton(ui.Button):
             embed.add_field(name="Ticket ID", value=f"`{ticket_channel.id}`", inline=False)
             await log_channel.send(embed=embed)
 
-        await asyncio.sleep(AUTO_CLOSE_MINUTES * 60)
-        if ticket_channel and ticket_channel.id == self.active_tickets.get(str(user.id)):
-            try:
-                transcript = ""
-                async for msg in ticket_channel.history(limit=None, oldest_first=True):
-                    transcript += f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author.name}: {msg.content}\n"
-
-                if log_channel:
-                    buffer = io.BytesIO(transcript.encode("utf-8"))
-                    file = discord.File(fp=buffer, filename=f"{ticket_channel.name}-transcript.txt")
-                    await log_channel.send(f"⏳ Ticket auto-closed due to inactivity.", file=file)
-
-                await ticket_channel.edit(name=f"closed-ticket-{user.name}", category=guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID), reason="Auto-close")
-                del self.active_tickets[str(user.id)]
-                save_active_tickets(self.active_tickets)
-
-            except Exception as e:
-                print(f"❌ ERROR during auto-close: {repr(e)}")
-
 class TicketCloseView(ui.View):
     def __init__(self, bot, active_tickets, user_id):
         super().__init__(timeout=None)
         self.bot = bot
         self.active_tickets = active_tickets
         self.user_id = user_id
+        self.add_item(TicketCloseButton(self))
 
-@ui.button(label="🖑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
-async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
-    try:
-        channel = interaction.channel
-        guild = channel.guild
-        log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+class TicketCloseButton(ui.Button):
+    def __init__(self, parent_view):
+        super().__init__(label="🖑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
+        self.parent_view = parent_view
 
-        await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
-
-        transcript = ""
-        async for msg in channel.history(limit=None, oldest_first=True):
-            transcript += f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author.name}: {msg.content}\n"
-
-        if log_channel:
-            buffer = io.BytesIO(transcript.encode("utf-8"))
-            file = discord.File(fp=buffer, filename=f"{channel.name}-transcript.txt")
-            await log_channel.send(f"📄 Ticket closed by {interaction.user.mention}", file=file)
-
-        archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
-        if not isinstance(archive_category, discord.CategoryChannel):
-            print(f"❌ ERROR: Channel ID {TICKET_ARCHIVE_CATEGORY_ID} is not a category.")
-            return await interaction.followup.send("⚠️ Ticket archive category is invalid or missing.", ephemeral=True)
-
-        await channel.edit(name=f"closed-ticket-{interaction.user.name}", category=archive_category, reason="Ticket closed")
-
-        if str(self.user_id) in self.active_tickets:
-            del self.active_tickets[str(self.user_id)]
-            save_active_tickets(self.active_tickets)
-
-    except Exception as e:
-        print(f"❌ ERROR in close_ticket: {repr(e)}")
+    async def callback(self, interaction: discord.Interaction):
         try:
-            await interaction.response.send_message("❌ Failed to close ticket.", ephemeral=True)
-        except:
-            await interaction.followup.send("❌ Failed to close ticket.", ephemeral=True)
+            channel = interaction.channel
+            guild = channel.guild
+            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
 
+            await interaction.response.send_message("⚠️ Closing ticket and saving transcript...", ephemeral=True)
 
+            transcript = ""
+            async for msg in channel.history(limit=None, oldest_first=True):
+                transcript += f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author.name}: {msg.content}\n"
+
+            if log_channel:
+                buffer = io.BytesIO(transcript.encode("utf-8"))
+                file = discord.File(fp=buffer, filename=f"{channel.name}-transcript.txt")
+                await log_channel.send(f"📄 Ticket closed by {interaction.user.mention}", file=file)
+
+            archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
+            if not isinstance(archive_category, discord.CategoryChannel):
+                print(f"❌ ERROR: Channel ID {TICKET_ARCHIVE_CATEGORY_ID} is not a category.")
+                return await interaction.followup.send("⚠️ Ticket archive category is invalid or missing.", ephemeral=True)
+
+            await channel.edit(name=f"closed-ticket-{interaction.user.name}", category=archive_category, reason="Ticket closed")
+
+            if str(self.parent_view.user_id) in self.parent_view.active_tickets:
+                del self.parent_view.active_tickets[str(self.parent_view.user_id)]
+                save_active_tickets(self.parent_view.active_tickets)
+
+        except Exception as e:
+            print(f"❌ ERROR in close_ticket: {repr(e)}")
+            try:
+                await interaction.response.send_message("❌ Failed to close ticket.", ephemeral=True)
+            except:
+                await interaction.followup.send("❌ Failed to close ticket.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(TicketSystem(bot))
