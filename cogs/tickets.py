@@ -115,8 +115,11 @@ class CategoryButton(ui.Button):
         save_active_tickets(self.active_tickets)
 
         mod_ping = f"<@&{MOD_ROLE_ID}>"
-        await ticket_channel.send(f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.")
-        await ticket_channel.send(view=TicketCloseView(self.bot, self.active_tickets, user.id))
+        await ticket_channel.send(
+    content=f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.",
+    view=TicketCloseView(self.bot, self.active_tickets, user.id)
+)
+
         await interaction.response.send_message(f"✅ Ticket for {CATEGORY_CHOICES[self.category_key]['label']} created!", ephemeral=True)
 
         log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
