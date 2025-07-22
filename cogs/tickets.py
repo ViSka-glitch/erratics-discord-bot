@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord import ui
 import io
 import json
@@ -12,6 +12,13 @@ MOD_ROLE_ID = 1392804903268651104
 TICKET_STORAGE_PATH = Path("tickets.json")
 AUTO_CLOSE_MINUTES = 30
 
+CATEGORY_CHOICES = {
+    "valheim": {"label": "🪓 Valheim", "emoji": "🪓"},
+    "ark_sa": {"label": "🦖 Ark SA", "emoji": "🦖"},
+    "space_engineers": {"label": "💪 Space Engineers", "emoji": "💪"},
+    "general": {"label": "💬 General stuff", "emoji": "💬"},
+    "pixelgear": {"label": "🎮 PixelGear", "emoji": "🎮"}
+}
 
 def load_active_tickets():
     if TICKET_STORAGE_PATH.exists():
@@ -19,11 +26,9 @@ def load_active_tickets():
             return json.load(f).get("active_tickets", {})
     return {}
 
-
 def save_active_tickets(tickets):
     with TICKET_STORAGE_PATH.open("w") as f:
         json.dump({"active_tickets": tickets}, f, indent=4)
-
 
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
@@ -51,7 +56,6 @@ class TicketSystem(commands.Cog):
         await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
         print("📨 Ticket panel sent.")
 
-
 class TicketCreateView(ui.View):
     def __init__(self, bot, active_tickets):
         super().__init__(timeout=None)
@@ -60,56 +64,66 @@ class TicketCreateView(ui.View):
 
     @ui.button(label="🎫 Open Ticket", style=discord.ButtonStyle.green, custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        try:
-            user = interaction.user
-            guild = interaction.guild
-            channel = interaction.channel
-            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+        await interaction.response.send_message(
+            "Please select a support category:",
+            view=CategorySelectView(self.bot, self.active_tickets),
+            ephemeral=True
+        )
 
-            if str(user.id) in self.active_tickets:
-                await interaction.response.send_message("⚠️ You already have an open ticket.", ephemeral=True)
-                return
+class CategorySelectView(ui.View):
+    def __init__(self, bot, active_tickets):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.active_tickets = active_tickets
+        for key, data in CATEGORY_CHOICES.items():
+            self.add_item(CategoryButton(bot, active_tickets, key, data["label"]))
 
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-                guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
-            }
+class CategoryButton(ui.Button):
+    def __init__(self, bot, active_tickets, category_key, label):
+        super().__init__(label=label, style=discord.ButtonStyle.primary, custom_id=f"category_{category_key}")
+        self.bot = bot
+        self.active_tickets = active_tickets
+        self.category_key = category_key
 
-            ticket_channel = await guild.create_text_channel(
-                name=f"ticket-{user.name}",
-                overwrites=overwrites,
-                reason="New support ticket"
-            )
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        guild = interaction.guild
 
-            self.active_tickets[str(user.id)] = ticket_channel.id
-            save_active_tickets(self.active_tickets)
+        if str(user.id) in self.active_tickets:
+            await interaction.response.send_message("⚠️ You already have an open ticket.", ephemeral=True)
+            return
 
-            mod_ping = f"<@&{MOD_ROLE_ID}>"
-            await ticket_channel.send(f"{mod_ping} 🎟️ {user.mention}, welcome!\nPlease describe your issue here.")
-            await ticket_channel.send(view=TicketCloseView(self.bot, self.active_tickets, user.id))
-            await interaction.response.send_message("✅ Your ticket has been created.", ephemeral=True)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
+        }
 
-            if log_channel:
-                embed = discord.Embed(title="📥 New Ticket Opened", color=discord.Color.green())
-                embed.add_field(name="User", value=f"{user} (`{user.id}`)", inline=False)
-                embed.add_field(name="Channel", value=ticket_channel.mention, inline=False)
-                embed.add_field(name="Ticket ID", value=f"`{ticket_channel.id}`", inline=False)
-                await log_channel.send(embed=embed)
+        ticket_channel = await guild.create_text_channel(
+            name=f"ticket-{self.category_key}-{user.name}",
+            overwrites=overwrites,
+            reason=f"New support ticket - {self.category_key}"
+        )
 
-            # Auto-Close Timer
-            await self.start_auto_close_timer(ticket_channel, user.id, log_channel)
+        self.active_tickets[str(user.id)] = ticket_channel.id
+        save_active_tickets(self.active_tickets)
 
-        except Exception as e:
-            print(f"❌ ERROR in open_ticket: {repr(e)}")
-            try:
-                await interaction.response.send_message("❌ Failed to create ticket. Please contact an admin.", ephemeral=True)
-            except:
-                await interaction.followup.send("❌ Failed to create ticket. Please contact an admin.", ephemeral=True)
+        mod_ping = f"<@&{MOD_ROLE_ID}>"
+        await ticket_channel.send(f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.")
+        await ticket_channel.send(view=TicketCloseView(self.bot, self.active_tickets, user.id))
+        await interaction.response.send_message(f"✅ Ticket for {CATEGORY_CHOICES[self.category_key]['label']} created!", ephemeral=True)
 
-    async def start_auto_close_timer(self, ticket_channel, user_id, log_channel):
+        log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+        if log_channel:
+            embed = discord.Embed(title="📅 New Ticket Opened", color=discord.Color.green())
+            embed.add_field(name="User", value=f"{user} (`{user.id}`)", inline=False)
+            embed.add_field(name="Category", value=self.category_key, inline=False)
+            embed.add_field(name="Channel", value=ticket_channel.mention, inline=False)
+            embed.add_field(name="Ticket ID", value=f"`{ticket_channel.id}`", inline=False)
+            await log_channel.send(embed=embed)
+
         await asyncio.sleep(AUTO_CLOSE_MINUTES * 60)
-        if ticket_channel and ticket_channel.id in [int(v) for v in self.active_tickets.values()]:
+        if ticket_channel and ticket_channel.id == self.active_tickets.get(str(user.id)):
             try:
                 transcript = ""
                 async for msg in ticket_channel.history(limit=None, oldest_first=True):
@@ -118,15 +132,14 @@ class TicketCreateView(ui.View):
                 if log_channel:
                     buffer = io.BytesIO(transcript.encode("utf-8"))
                     file = discord.File(fp=buffer, filename=f"{ticket_channel.name}-transcript.txt")
-                    await log_channel.send(f"⏱️ Ticket auto-closed due to inactivity.", file=file)
+                    await log_channel.send(f"⏳ Ticket auto-closed due to inactivity.", file=file)
 
                 await ticket_channel.delete(reason="Auto-close after inactivity")
-                del self.active_tickets[str(user_id)]
+                del self.active_tickets[str(user.id)]
                 save_active_tickets(self.active_tickets)
 
             except Exception as e:
                 print(f"❌ ERROR during auto-close: {repr(e)}")
-
 
 class TicketCloseView(ui.View):
     def __init__(self, bot, active_tickets, user_id):
@@ -135,7 +148,7 @@ class TicketCloseView(ui.View):
         self.active_tickets = active_tickets
         self.user_id = user_id
 
-    @ui.button(label="🗑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
+    @ui.button(label="🖑️ Close Ticket", style=discord.ButtonStyle.red, custom_id="close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
         try:
             channel = interaction.channel
@@ -150,7 +163,7 @@ class TicketCloseView(ui.View):
             if log_channel:
                 buffer = io.BytesIO(transcript.encode("utf-8"))
                 file = discord.File(fp=buffer, filename=f"{channel.name}-transcript.txt")
-                await log_channel.send(f"📤 Ticket closed by {interaction.user.mention}", file=file)
+                await log_channel.send(f"📄 Ticket closed by {interaction.user.mention}", file=file)
 
             if str(self.user_id) in self.active_tickets:
                 del self.active_tickets[str(self.user_id)]
