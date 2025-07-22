@@ -3,7 +3,6 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,7 +17,7 @@ intents.guilds = True
 intents.messages = True
 intents.reactions = True
 
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
 bot.owner_id = int(os.getenv("OWNER_ID"))
 
 
@@ -57,10 +56,13 @@ async def load_extensions():
 
 # --- Main ---
 async def main():
-    async with bot:
-        await load_extensions()
-        await bot.start(TOKEN)
+    try:
+        async with bot:
+            await load_extensions()
+            await bot.start(TOKEN)
+    except KeyboardInterrupt:
+        print("🛑 Bot shutdown requested (KeyboardInterrupt).")
+        await bot.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
-
