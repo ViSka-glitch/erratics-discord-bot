@@ -135,6 +135,33 @@ class CategoryButton(ui.Button):
             embed.add_field(name="Ticket ID", value=f"`{ticket_channel.id}`", inline=False)
             await log_channel.send(embed=embed)
 
+        await asyncio.sleep(AUTO_CLOSE_MINUTES * 60)
+        if ticket_channel and ticket_channel.id == self.active_tickets.get(str(user.id)):
+            try:
+                transcript = ""
+                async for msg in ticket_channel.history(limit=None, oldest_first=True):
+                    transcript += f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author.name}: {msg.content}\n"
+
+                if log_channel:
+                    buffer = io.BytesIO(transcript.encode("utf-8"))
+                    file = discord.File(fp=buffer, filename=f"{ticket_channel.name}-transcript.txt")
+                    await log_channel.send(f"⏳ Ticket auto-closed due to inactivity.", file=file)
+
+                archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
+                await ticket_channel.edit(name=f"closed-ticket-{user.name}", category=archive_category, reason="Auto-close")
+
+                await asyncio.sleep(5)
+                # Revoke view access from user
+                overwrite = ticket_channel.overwrites_for(user)
+                overwrite.view_channel = False
+                await ticket_channel.set_permissions(user, overwrite=overwrite)
+
+                del self.active_tickets[str(user.id)]
+                save_active_tickets(self.active_tickets)
+
+            except Exception as e:
+                print(f"❌ ERROR during auto-close: {repr(e)}")
+
 class TicketCloseView(ui.View):
     def __init__(self, bot, active_tickets, user_id):
         super().__init__(timeout=None)
@@ -171,6 +198,14 @@ class TicketCloseButton(ui.Button):
                 return await interaction.followup.send("⚠️ Ticket archive category is invalid or missing.", ephemeral=True)
 
             await channel.edit(name=f"closed-ticket-{interaction.user.name}", category=archive_category, reason="Ticket closed")
+
+            await asyncio.sleep(5)
+            # Revoke view access from ticket creator
+            member = guild.get_member(self.parent_view.user_id)
+            if member:
+                overwrite = channel.overwrites_for(member)
+                overwrite.view_channel = False
+                await channel.set_permissions(member, overwrite=overwrite)
 
             if str(self.parent_view.user_id) in self.parent_view.active_tickets:
                 del self.parent_view.active_tickets[str(self.parent_view.user_id)]
