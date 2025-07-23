@@ -22,15 +22,15 @@ CATEGORY_CHOICES = {
     "pixelgear": {"label": "🎮 PixelGear", "emoji": "🎮"}
 }
 
-def load_active_tickets():
+def load_ticket_data():
     if TICKET_STORAGE_PATH.exists():
         with TICKET_STORAGE_PATH.open("r") as f:
-            return json.load(f).get("active_tickets", {})
+            return json.load(f)
     return {}
 
-def save_active_tickets(tickets):
+def save_ticket_data(data):
     with TICKET_STORAGE_PATH.open("w") as f:
-        json.dump({"active_tickets": tickets}, f, indent=4)
+        json.dump(data, f, indent=4)
 
 class TicketCreateView(ui.View):
     def __init__(self, bot, active_tickets):
@@ -55,7 +55,8 @@ class OpenTicketButton(ui.Button):
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.active_tickets = load_active_tickets()
+        self.ticket_data = load_ticket_data()
+        self.active_tickets = self.ticket_data.get("active_tickets", {})
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -65,11 +66,6 @@ class TicketSystem(commands.Cog):
             print(f"❌ Ticket panel channel ID {TICKET_PANEL_CHANNEL_ID} not found.")
             return
 
-        async for msg in channel.history(limit=50):
-            if msg.author == self.bot.user and msg.components:
-                await msg.delete()
-                print("♻️ Old ticket panel deleted.")
-
         embed = discord.Embed(
             title="🎟️ Need Support?",
             description=(
@@ -78,8 +74,20 @@ class TicketSystem(commands.Cog):
             ),
             color=discord.Color.blurple()
         )
-        await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
-        print("📨 Ticket panel sent.")
+
+        panel_message_id = self.ticket_data.get("panel_message_id")
+        try:
+            if panel_message_id:
+                msg = await channel.fetch_message(panel_message_id)
+                await msg.edit(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
+                print("♻️ Ticket panel updated.")
+            else:
+                raise discord.NotFound(response=None, message="No stored message ID")
+        except (discord.NotFound, discord.HTTPException):
+            msg = await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
+            self.ticket_data["panel_message_id"] = msg.id
+            save_ticket_data(self.ticket_data)
+            print("📩 Ticket panel sent.")
 
 class CategorySelectView(ui.View):
     def __init__(self, bot, active_tickets):
@@ -117,7 +125,8 @@ class CategoryButton(ui.Button):
         )
 
         self.active_tickets[str(user.id)] = ticket_channel.id
-        save_active_tickets(self.active_tickets)
+        self.bot.get_cog("TicketSystem").ticket_data["active_tickets"] = self.active_tickets
+        save_ticket_data(self.bot.get_cog("TicketSystem").ticket_data)
 
         mod_ping = f"<@&{MOD_ROLE_ID}>"
         await ticket_channel.send(
@@ -146,7 +155,7 @@ class CategoryButton(ui.Button):
                 if log_channel:
                     buffer = io.BytesIO(transcript.encode("utf-8"))
                     file = discord.File(fp=buffer, filename=f"{ticket_channel.name}-transcript.txt")
-                    await log_channel.send(f"⏳ Ticket auto-closed due to inactivity.", file=file)
+                    await log_channel.send("⏳ Ticket auto-closed due to inactivity.", file=file)
 
                 archive_category = guild.get_channel(TICKET_ARCHIVE_CATEGORY_ID)
                 await ticket_channel.edit(name=f"closed-ticket-{user.name}", category=archive_category, reason="Auto-close")
@@ -157,7 +166,8 @@ class CategoryButton(ui.Button):
                 await ticket_channel.set_permissions(user, overwrite=overwrite)
 
                 del self.active_tickets[str(user.id)]
-                save_active_tickets(self.active_tickets)
+                self.bot.get_cog("TicketSystem").ticket_data["active_tickets"] = self.active_tickets
+                save_ticket_data(self.bot.get_cog("TicketSystem").ticket_data)
 
             except Exception as e:
                 print(f"❌ ERROR during auto-close: {repr(e)}")
@@ -219,7 +229,8 @@ class CloseReasonModal(ui.Modal):
 
         if str(self.parent_view.user_id) in self.parent_view.active_tickets:
             del self.parent_view.active_tickets[str(self.parent_view.user_id)]
-            save_active_tickets(self.parent_view.active_tickets)
+            self.bot.get_cog("TicketSystem").ticket_data["active_tickets"] = self.parent_view.active_tickets
+            save_ticket_data(self.bot.get_cog("TicketSystem").ticket_data)
 
         if log_channel:
             embed = discord.Embed(title="📄 Ticket Closed", color=discord.Color.red() if not self.solved else discord.Color.green())
