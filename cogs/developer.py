@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import json
 import os
 import asyncio
 
@@ -40,6 +41,38 @@ class Developer(commands.Cog):
         await interaction.response.send_message("♻️ Restarting bot...", ephemeral=True)
         await self.bot.close()
         os.system("python3 bot.py")
+
+    @app_commands.command(name="dump_ids", description="List all roles, channels, and categories with their IDs")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def dump_ids(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command must be used in a server.", ephemeral=True)
+            return
+
+        categories = {cat.name: cat.id for cat in guild.categories}
+        text_channels = {ch.name: ch.id for ch in guild.text_channels}
+        voice_channels = {ch.name: ch.id for ch in guild.voice_channels}
+        roles = {role.name: role.id for role in guild.roles if not role.is_bot_managed()}
+
+        output = {
+            "categories": categories,
+            "text_channels": text_channels,
+            "voice_channels": voice_channels,
+            "roles": roles
+        }
+
+        os.makedirs("data", exist_ok=True)
+        with open("data/dump_ids.json", "w") as f:
+            json.dump(output, f, indent=4)
+
+        embed = discord.Embed(title="🧩 Server ID Dump", color=discord.Color.blue())
+        embed.add_field(name="Categories", value="\n".join([f"{k}: `{v}`" for k, v in categories.items()]) or "-", inline=False)
+        embed.add_field(name="Text Channels", value="\n".join([f"{k}: `{v}`" for k, v in text_channels.items()]) or "-", inline=False)
+        embed.add_field(name="Voice Channels", value="\n".join([f"{k}: `{v}`" for k, v in voice_channels.items()]) or "-", inline=False)
+        embed.add_field(name="Roles", value="\n".join([f"{k}: `{v}`" for k, v in roles.items()]) or "-", inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Developer(bot))
