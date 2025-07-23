@@ -5,6 +5,8 @@ from datetime import datetime
 from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
 
 LOG_CHANNEL_ID = 1392804950320480326  # 🔒│classified-logs
+TRANSMISSION_ID = 1392804912684863549  # 🛁│transmission-incoming
+TICKETPANEL_ID = 1393966439429312652  # 📨│open-a-ticket
 
 class OnReady(commands.Cog):
     def __init__(self, bot):
@@ -38,14 +40,17 @@ class OnReady(commands.Cog):
             for channel in guild.text_channels:
                 print(f"- {channel.name}: {channel.id}")
 
-            # 🔍 Vorschlag B: Wichtige Channelnamen prüfen
-            required_channels = ["📁️transmission-incoming", "📨️open-a-ticket", "🔒️classified-logs"]
-            for name in required_channels:
-                found = discord.utils.get(guild.text_channels, name=name)
-                if found:
-                    print(f"✅ Found channel: {name} (ID: {found.id})")
+            # 🔍 Vorschlag B: Channel-ID-Existenz prüfen
+            for cid, label in [
+                (TRANSMISSION_ID, "transmission-incoming"),
+                (TICKETPANEL_ID, "open-a-ticket"),
+                (LOG_CHANNEL_ID, "classified-logs")
+            ]:
+                channel = guild.get_channel(cid)
+                if channel:
+                    print(f"✅ Found channel ID: {cid} ({label})")
                 else:
-                    print(f"❌ Missing channel: {name}")
+                    print(f"❌ Missing channel ID: {cid} ({label})")
 
         # Persistent Views für Buttons registrieren
         try:
@@ -68,4 +73,3 @@ class OnReady(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(OnReady(bot))
-# --- This file is part of the Erratics Discord Bot project ---
