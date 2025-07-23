@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from datetime import datetime
+import os
 
 from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
 
@@ -52,6 +53,32 @@ class OnReady(commands.Cog):
                 else:
                     print(f"❌ Missing channel ID: {cid} ({label})")
 
+            # 📆 Willkommensnachricht beim Botstart
+            try:
+                welcome_channel = guild.get_channel(TRANSMISSION_ID)
+                if welcome_channel:
+                    image_path = "/home/botuser/discord-bot/assets/erratics_welcome.png"
+                    if os.path.exists(image_path):
+                        file = discord.File(image_path, filename="erratics_welcome.png")
+                        embed = discord.Embed(
+                            title="Welcome to ERRATICS",
+                            description=(
+                                "You're part of something bigger now.\n"
+                                "Use `/verify` to start your journey and check #🧬│initiate-sequence for details."
+                            ),
+                            color=discord.Color.teal()
+                        )
+                        embed.set_image(url="attachment://erratics_welcome.png")
+                        embed.set_footer(text="Welcome, Operative.")
+
+                        await welcome_channel.send(file=file, embed=embed)
+                    else:
+                        print(f"❌ Image not found: {image_path}")
+                else:
+                    print("❌ Welcome channel not found via ID")
+            except Exception as e:
+                print(f"❌ Error sending welcome embed: {e}")
+
         # Persistent Views für Buttons registrieren
         try:
             ticket_data = load_ticket_data()
@@ -72,4 +99,7 @@ class OnReady(commands.Cog):
         print(f"{self.bot.user} is online.")
 
 async def setup(bot):
-    await bot.add_cog(OnReady(bot))
+    if bot.get_cog("OnReady") is None:
+        await bot.add_cog(OnReady(bot))
+    else:
+        print("⚠️ OnReady already registered – skipping.")
