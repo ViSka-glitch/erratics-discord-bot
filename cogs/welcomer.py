@@ -32,9 +32,9 @@ class VerifyView(discord.ui.View):
 
         welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
         if welcome_channel:
-            await welcome_channel.send(f"🎉 Willkommen {interaction.user.mention} im Server!")
+            await welcome_channel.send(f"🎉 Welcome {interaction.user.mention} to the server!")
 
-        # Remove from join_pending.json
+        # Remove user from join_pending.json
         if os.path.exists(JOIN_DATA_PATH):
             with open(JOIN_DATA_PATH, "r") as f:
                 data = json.load(f)
@@ -59,8 +59,8 @@ class Welcomer(commands.Cog):
         view = VerifyView(user_id=member.id)
 
         embed = discord.Embed(
-            title=f"Willkommen, {member.name}!",
-            description="Bitte klicke auf den Button unten, um dich zu verifizieren und Zugriff zum Server zu erhalten.",
+            title=f"Welcome, {member.name}!",
+            description="Please click the button below to verify and gain access to the server.",
             color=discord.Color.orange()
         )
         file = discord.File("assets/erratics_welcome.png", filename="welcome.png")
@@ -73,13 +73,12 @@ class Welcomer(commands.Cog):
             file=file
         )
 
-        # Restrict visibility via channel overwrites (if channel is per-user)
         try:
             await message.edit(view=view)
         except:
             pass
 
-        # Save to join_pending.json
+        # Save user info to join_pending.json
         os.makedirs(os.path.dirname(JOIN_DATA_PATH), exist_ok=True)
         if os.path.exists(JOIN_DATA_PATH):
             with open(JOIN_DATA_PATH, "r") as f:
@@ -112,11 +111,11 @@ class Welcomer(commands.Cog):
                     guild = self.bot.get_guild(GUILD_ID)
                     member = guild.get_member(int(user_id))
                     if member:
-                        await member.kick(reason="Nicht innerhalb von 24h verifiziert")
-                        print(f"❌ Kicked {member} (nicht verifiziert)")
+                        await member.kick(reason="Did not verify within 24h")
+                        print(f"❌ Kicked {member} (not verified)")
                     to_remove.append(user_id)
             except Exception as e:
-                print(f"Fehler beim Kick-Check: {e}")
+                print(f"Error during kick check: {e}")
 
         for uid in to_remove:
             data.pop(uid, None)
