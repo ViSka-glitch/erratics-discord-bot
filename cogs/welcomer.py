@@ -3,6 +3,8 @@ from discord.ext import commands, tasks
 import json
 import os
 from datetime import datetime, timedelta
+from config.ids import TICKETS_ID, WILLKOMMEN_ID, VERIFY_ID
+
 
 GUILD_ID = 1392804906780557362  # Replace if needed
 WELCOME_CHANNEL_ID = 1392804912684863549
