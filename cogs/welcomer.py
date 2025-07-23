@@ -9,6 +9,20 @@ LOG_CHANNEL_ID = 1392804950320480326  # 🔒│classified-logs
 TRANSMISSION_ID = 1392804912684863549  # 🛁│transmission-incoming
 TICKETPANEL_ID = 1393966439429312652  # 📨│open-a-ticket
 
+class VerifyButton(discord.ui.View):
+    def __init__(self, role_id):
+        super().__init__(timeout=None)
+        self.role_id = role_id
+
+    @discord.ui.button(label="Verify", style=discord.ButtonStyle.success, custom_id="verify_button")
+    async def verify(self, interaction: discord.Interaction, button: discord.ui.Button):
+        role = interaction.guild.get_role(self.role_id)
+        if role:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message("✅ You have been verified!", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Verification role not found.", ephemeral=True)
+
 class OnReady(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -64,14 +78,21 @@ class OnReady(commands.Cog):
                             title="Welcome to ERRATICS",
                             description=(
                                 "You're part of something bigger now.\n"
-                                "Use `/verify` to start your journey and check #🧬│initiate-sequence for details."
+                                "Click below to verify and begin."
                             ),
                             color=discord.Color.teal()
                         )
                         embed.set_image(url="attachment://erratics_welcome.png")
                         embed.set_footer(text="Welcome, Operative.")
 
-                        await welcome_channel.send(file=file, embed=embed)
+                        # Rolle "Verified" suchen
+                        verify_role = guild.get_role(1392804906804707369)
+                        if verify_role:
+                            view = VerifyButton(role_id=verify_role.id)
+                            await welcome_channel.send(file=file, embed=embed, view=view)
+                        else:
+                            await welcome_channel.send(file=file, embed=embed)
+                            print("❌ Verification role 'Verified' not found.")
                     else:
                         print(f"❌ Image not found: {image_path}")
                 else:
@@ -85,6 +106,7 @@ class OnReady(commands.Cog):
             active_tickets = ticket_data.get("active_tickets", {})
 
             self.bot.add_view(TicketCreateView(self.bot, active_tickets))
+            self.bot.add_view(VerifyButton(role_id=0))  # Wird im on_ready dynamisch ersetzt
             print("✅ Persistent views registered.")
         except Exception as e:
             print(f"❌ Failed to register views: {e}")
