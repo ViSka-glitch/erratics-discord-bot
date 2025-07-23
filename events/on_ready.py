@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 
-from cogs.tickets import TicketCreateView, load_active_tickets  # 💡 Dateiname angepasst
+from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
 
 LOG_CHANNEL_ID = 1392804950320480326  # 🔒│classified-logs
 
@@ -33,7 +33,9 @@ class OnReady(commands.Cog):
 
         # Persistent Views für Buttons registrieren
         try:
-            active_tickets = load_active_tickets()
+            ticket_data = load_ticket_data()
+            active_tickets = ticket_data.get("active_tickets", {})
+
             self.bot.add_view(TicketCreateView(self.bot, active_tickets))
             print("✅ Persistent views registered.")
         except Exception as e:
