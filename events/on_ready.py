@@ -51,4 +51,8 @@ class OnReady(commands.Cog):
         print(f"{self.bot.user} is online.")
 
 async def setup(bot):
-    await bot.add_cog(OnReady(bot))
+    if bot.get_cog("OnReady") is None:
+        await bot.add_cog(OnReady(bot))
+    else:
+        print("⚠️ OnReady already registered – skipping.")
+
