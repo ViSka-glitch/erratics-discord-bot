@@ -3,12 +3,8 @@ from discord.ext import commands, tasks
 import json
 import os
 from datetime import datetime, timedelta
-from config.ids import TICKETS_ID, WILLKOMMEN_ID, VERIFY_ID
+from config.ids import GUILD_ID, WELCOME_CHANNEL_ID, VERIFY_ROLE_ID
 
-
-GUILD_ID = 1392804906780557362  # Replace if needed
-WELCOME_CHANNEL_ID = 1392804912684863549
-VERIFY_ROLE_ID = 1392804906804707369
 JOIN_DATA_PATH = "data/join_pending.json"
 
 class VerifyView(discord.ui.View):
@@ -80,7 +76,6 @@ class Welcomer(commands.Cog):
         except:
             pass
 
-        # Save user info to join_pending.json
         os.makedirs(os.path.dirname(JOIN_DATA_PATH), exist_ok=True)
         if os.path.exists(JOIN_DATA_PATH):
             with open(JOIN_DATA_PATH, "r") as f:

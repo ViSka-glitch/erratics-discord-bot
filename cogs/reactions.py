@@ -1,9 +1,8 @@
 import discord
 from discord.ext import commands
+from config.ids import VERIFY_ID, LOG_CHANNEL_ID
 
 # Constants
-MEMBER_ROLE_ID = 1392804906804707369       # 🎖️ Member role
-LOG_CHANNEL_ID = 1392804915516149880       # 🛰️│system-logs
 TARGET_EMOJI = "✅"
 
 class Reactions(commands.Cog):
@@ -24,7 +23,7 @@ class Reactions(commands.Cog):
         if not member or member.bot:
             return
 
-        role = guild.get_role(MEMBER_ROLE_ID)
+        role = guild.get_role(VERIFY_ID)
         if not role:
             return
 

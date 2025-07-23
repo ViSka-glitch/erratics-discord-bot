@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
-
-MODLOG_CHANNEL_ID = 1392804948940554260  # 🛡│mod-log
+from config.ids import MOD_LOG_ID
 
 class Moderation(commands.Cog):
     def __init__(self, bot):
@@ -11,7 +10,7 @@ class Moderation(commands.Cog):
 
     async def post_mod_commands_info(self, guild: discord.Guild):
         """Posts an embed with available mod commands to the log channel, if not already pinned."""
-        log_channel = guild.get_channel(MODLOG_CHANNEL_ID)
+        log_channel = guild.get_channel(MOD_LOG_ID)
         if not log_channel:
             return
 
@@ -53,7 +52,7 @@ class Moderation(commands.Cog):
         deleted = await interaction.channel.purge(limit=amount)
         await interaction.followup.send(f"✅ Deleted {len(deleted)} messages.", ephemeral=True)
 
-        log_channel = interaction.guild.get_channel(MODLOG_CHANNEL_ID)
+        log_channel = interaction.guild.get_channel(MOD_LOG_ID)
         if log_channel:
             await log_channel.send(
                 f"🧹 `{interaction.user}` deleted {len(deleted)} messages in {interaction.channel.mention}"
@@ -66,7 +65,7 @@ class Moderation(commands.Cog):
         await member.kick(reason=reason)
         await interaction.followup.send(f"👢 Kicked {member.mention}", ephemeral=True)
 
-        log_channel = interaction.guild.get_channel(MODLOG_CHANNEL_ID)
+        log_channel = interaction.guild.get_channel(MOD_LOG_ID)
         if log_channel:
             await log_channel.send(
                 f"👢 `{member}` was kicked by `{interaction.user}`.\n**Reason:** {reason}"
@@ -79,7 +78,7 @@ class Moderation(commands.Cog):
         await member.ban(reason=reason)
         await interaction.followup.send(f"🔨 Banned {member.mention}", ephemeral=True)
 
-        log_channel = interaction.guild.get_channel(MODLOG_CHANNEL_ID)
+        log_channel = interaction.guild.get_channel(MOD_LOG_ID)
         if log_channel:
             await log_channel.send(
                 f"🔨 `{member}` was banned by `{interaction.user}`.\n**Reason:** {reason}"
@@ -94,7 +93,7 @@ class Moderation(commands.Cog):
             await member.timeout(until, reason=reason)
             await interaction.followup.send(f"⏳ {member.mention} has been timed out for {duration} minutes.", ephemeral=True)
 
-            log_channel = interaction.guild.get_channel(MODLOG_CHANNEL_ID)
+            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
             if log_channel:
                 await log_channel.send(
                     f"⏳ `{member}` was timed out by `{interaction.user}` for {duration} minutes.\n**Reason:** {reason}"
@@ -111,7 +110,7 @@ class Moderation(commands.Cog):
             await interaction.guild.unban(user, reason=reason)
             await interaction.followup.send(f"🕊️ User with ID `{user_id}` has been unbanned.", ephemeral=True)
 
-            log_channel = interaction.guild.get_channel(MODLOG_CHANNEL_ID)
+            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
             if log_channel:
                 await log_channel.send(
                     f"🕊️ `{user_id}` was unbanned by `{interaction.user}`.\n**Reason:** {reason}"

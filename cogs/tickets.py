@@ -1,15 +1,17 @@
 import discord
 from discord.ext import commands
-from discord import ui
+from discord import ui, app_commands
 import io
 import json
 import asyncio
 from pathlib import Path
+from config.ids import (
+    TICKET_PANEL_CHANNEL_ID,
+    TICKET_LOG_CHANNEL_ID,
+    MOD_ROLE_ID,
+    TICKET_ARCHIVE_CATEGORY_ID
+)
 
-TICKET_PANEL_CHANNEL_ID = 1393966439429312652
-TICKET_LOG_CHANNEL_ID = 1394395965011791872
-MOD_ROLE_ID = 1392804903268651104
-TICKET_ARCHIVE_CATEGORY_ID = 1397321789733994636
 TICKET_STORAGE_PATH = Path("tickets.json")
 AUTO_CLOSE_MINUTES = 30
 ARCHIVE_DELAY_SECONDS = 15
@@ -21,6 +23,7 @@ CATEGORY_CHOICES = {
     "general": {"label": "💬 General stuff", "emoji": "💬"},
     "pixelgear": {"label": "🎮 PixelGear", "emoji": "🎮"}
 }
+
 
 def load_ticket_data():
     if TICKET_STORAGE_PATH.exists():

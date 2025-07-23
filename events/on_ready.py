@@ -3,8 +3,7 @@ from discord.ext import commands
 from datetime import datetime
 
 from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
-
-LOG_CHANNEL_ID = 1392804950320480326  # 🔒│classified-logs
+from config.ids import LOG_CHANNEL_ID
 
 class OnReady(commands.Cog):
     def __init__(self, bot):
@@ -55,4 +54,3 @@ async def setup(bot):
         await bot.add_cog(OnReady(bot))
     else:
         print("⚠️ OnReady already registered – skipping.")
-
