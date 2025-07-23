@@ -3,9 +3,9 @@ from discord.ext import commands
 from discord import ui
 
 # Channel and Role IDs
-WELCOME_CHANNEL_ID = 1392804912684863549        # 📡│transmission-incoming
-LOG_CHANNEL_ID = 1392804950320480326            # 🔒│classified-logs
-QUICKSTART_CHANNEL_ID = 1392804914178166855     # 🧬│initiate-sequence
+WELCOME_CHANNEL_ID = 1392804912684863549        # 📁 transmission-incoming
+LOG_CHANNEL_ID = 1392804950320480326            # 🔒 classified-logs
+QUICKSTART_CHANNEL_ID = 1392804914178166855     # 🧬 initiate-sequence
 MEMBER_ROLE_ID = 1392804906804707369            # 🎖️ Member
 
 class Welcomer(commands.Cog):
@@ -20,24 +20,24 @@ class Welcomer(commands.Cog):
         quickstart_channel = guild.get_channel(QUICKSTART_CHANNEL_ID)
 
         if not all([welcome_channel, log_channel, quickstart_channel]):
-            print("❌ One or more welcome-related channels could not be found.")
+            print("\u274c One or more welcome-related channels could not be found.")
             return
 
         embed = discord.Embed(
-            title=f"👾 Welcome to {guild.name}, {member.name}!",
+            title="\ud83d\ude3e Welcome to ERRATICS",
             description=(
-                f"Prepare for upload.\n\n"
-                f"To begin your integration, please confirm you're human below.\n\n"
-                f"Need help? Visit {quickstart_channel.mention}."
+                "\ud83e\udde0 *Unpredictable Gaming. Tactical Fun. True Survival.*\n\n"
+                f"\ud83d\udccc Please confirm you're human to begin. Need help? Visit {quickstart_channel.mention}."
             ),
-            color=discord.Color.green()
+            color=discord.Color.dark_red()
         )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"User ID: {member.id}")
+        embed.set_footer(text=f"User ID: {member.id} • Transmission: Initiated.")
+        embed.set_image(url="attachment://erratics_welcome.png")
 
         view = ConfirmView(member)
-        await welcome_channel.send(content=member.mention, embed=embed, view=view)
-        await log_channel.send(f"🟢 {member.mention} (`{member}`) joined the server.")
+        file = discord.File("/home/botuser/assets/erratics_welcome.png", filename="erratics_welcome.png")
+        await welcome_channel.send(content=member.mention, embed=embed, view=view, file=file)
+        await log_channel.send(f"\ud83d\udfe2 {member.mention} (`{member}`) joined the server.")
 
 class ConfirmView(ui.View):
     def __init__(self, member: discord.Member):
@@ -50,7 +50,6 @@ class ConfirmView(ui.View):
             await interaction.response.send_message("⛔ You cannot confirm for someone else.", ephemeral=True)
             return
 
-        # Attempt to assign the role
         role = interaction.guild.get_role(MEMBER_ROLE_ID)
         if role:
             try:
