@@ -1,127 +1,128 @@
 import discord
-from discord.ext import commands
-from datetime import datetime
+from discord.ext import commands, tasks
+import json
 import os
+from datetime import datetime, timedelta
 
-from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
+GUILD_ID = 1392804906780557362  # Replace if needed
+WELCOME_CHANNEL_ID = 1392804912684863549
+VERIFY_ROLE_ID = 1392804906804707369
+JOIN_DATA_PATH = "data/join_pending.json"
 
-LOG_CHANNEL_ID = 1392804950320480326  # 🔒│classified-logs
-TRANSMISSION_ID = 1392804912684863549  # 🛁│transmission-incoming
-TICKETPANEL_ID = 1393966439429312652  # 📨│open-a-ticket
-
-class VerifyButton(discord.ui.View):
-    def __init__(self, role_id):
+class VerifyView(discord.ui.View):
+    def __init__(self, user_id):
         super().__init__(timeout=None)
-        self.role_id = role_id
+        self.user_id = user_id
 
-    @discord.ui.button(label="Verify", style=discord.ButtonStyle.success, custom_id="verify_button")
-    async def verify(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role = interaction.guild.get_role(self.role_id)
+    @discord.ui.button(label="✅ Verify", style=discord.ButtonStyle.success, custom_id="verify_button")
+    async def verify_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This button isn't for you.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        role = guild.get_role(VERIFY_ROLE_ID)
         if role:
-            await interaction.user.add_roles(role)
-            await interaction.response.send_message("✅ You have been verified!", ephemeral=True)
-        else:
-            await interaction.response.send_message("❌ Verification role not found.", ephemeral=True)
+            await interaction.user.add_roles(role, reason="User verified")
 
-class OnReady(commands.Cog):
+        try:
+            await interaction.message.delete()
+        except:
+            pass
+
+        welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
+        if welcome_channel:
+            await welcome_channel.send(f"🎉 Willkommen {interaction.user.mention} im Server!")
+
+        # Remove from join_pending.json
+        if os.path.exists(JOIN_DATA_PATH):
+            with open(JOIN_DATA_PATH, "r") as f:
+                data = json.load(f)
+            data.pop(str(interaction.user.id), None)
+            with open(JOIN_DATA_PATH, "w") as f:
+                json.dump(data, f, indent=4)
+
+class Welcomer(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.kick_check.start()
+
+    def cog_unload(self):
+        self.kick_check.cancel()
 
     @commands.Cog.listener()
-    async def on_ready(self):
-        for guild in self.bot.guilds:
-            print(f"\n✨ Checking guild: {guild.name} ({guild.id})")
+    async def on_member_join(self, member: discord.Member):
+        channel = member.guild.get_channel(WELCOME_CHANNEL_ID)
+        if not channel:
+            return
 
-            # Bot-Rolle erstellen, falls nicht vorhanden
-            bot_role = discord.utils.get(guild.roles, name="🤖 Bot")
-            if not bot_role:
-                bot_role = await guild.create_role(name="🤖 Bot", colour=discord.Colour.dark_grey())
+        view = VerifyView(user_id=member.id)
 
-            # Bot-Rolle zuweisen
-            bot_member = guild.get_member(self.bot.user.id)
-            if bot_member and bot_role not in bot_member.roles:
-                await bot_member.add_roles(bot_role)
+        embed = discord.Embed(
+            title=f"Willkommen, {member.name}!",
+            description="Bitte klicke auf den Button unten, um dich zu verifizieren und Zugriff zum Server zu erhalten.",
+            color=discord.Color.orange()
+        )
+        file = discord.File("assets/erratics_welcome.png", filename="welcome.png")
+        embed.set_image(url="attachment://welcome.png")
 
-            # Log senden
-            log_channel = guild.get_channel(LOG_CHANNEL_ID)
-            if log_channel:
-                timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
-                await log_channel.send(
-                    f"🤖 Bot is online and role was assigned (`{guild.name}` at `{timestamp}`)"
-                )
+        message = await channel.send(
+            content=member.mention,
+            embed=embed,
+            view=view,
+            file=file
+        )
 
-            # 🔍 Vorschlag A: Alle Textkanäle + IDs ausgeben
-            print("\n# Text Channels:")
-            for channel in guild.text_channels:
-                print(f"- {channel.name}: {channel.id}")
+        # Restrict visibility via channel overwrites (if channel is per-user)
+        try:
+            await message.edit(view=view)
+        except:
+            pass
 
-            # 🔍 Vorschlag B: Channel-ID-Existenz prüfen
-            for cid, label in [
-                (TRANSMISSION_ID, "transmission-incoming"),
-                (TICKETPANEL_ID, "open-a-ticket"),
-                (LOG_CHANNEL_ID, "classified-logs")
-            ]:
-                channel = guild.get_channel(cid)
-                if channel:
-                    print(f"✅ Found channel ID: {cid} ({label})")
-                else:
-                    print(f"❌ Missing channel ID: {cid} ({label})")
+        # Save to join_pending.json
+        os.makedirs(os.path.dirname(JOIN_DATA_PATH), exist_ok=True)
+        if os.path.exists(JOIN_DATA_PATH):
+            with open(JOIN_DATA_PATH, "r") as f:
+                data = json.load(f)
+        else:
+            data = {}
 
-            # 📆 Willkommensnachricht beim Botstart
+        data[str(member.id)] = {
+            "channel_id": channel.id,
+            "message_id": message.id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        with open(JOIN_DATA_PATH, "w") as f:
+            json.dump(data, f, indent=4)
+
+    @tasks.loop(minutes=10)
+    async def kick_check(self):
+        if not os.path.exists(JOIN_DATA_PATH):
+            return
+
+        with open(JOIN_DATA_PATH, "r") as f:
+            data = json.load(f)
+
+        to_remove = []
+        for user_id, entry in data.items():
             try:
-                welcome_channel = guild.get_channel(TRANSMISSION_ID)
-                if welcome_channel:
-                    image_path = "/home/botuser/discord-bot/assets/erratics_welcome.png"
-                    if os.path.exists(image_path):
-                        file = discord.File(image_path, filename="erratics_welcome.png")
-                        embed = discord.Embed(
-                            title="Welcome to ERRATICS",
-                            description=(
-                                "You're part of something bigger now.\n"
-                                "Click below to verify and begin."
-                            ),
-                            color=discord.Color.teal()
-                        )
-                        embed.set_image(url="attachment://erratics_welcome.png")
-                        embed.set_footer(text="Welcome, Operative.")
-
-                        # Rolle "Verified" suchen
-                        verify_role = guild.get_role(1392804906804707369)
-                        if verify_role:
-                            view = VerifyButton(role_id=verify_role.id)
-                            await welcome_channel.send(file=file, embed=embed, view=view)
-                        else:
-                            await welcome_channel.send(file=file, embed=embed)
-                            print("❌ Verification role 'Verified' not found.")
-                    else:
-                        print(f"❌ Image not found: {image_path}")
-                else:
-                    print("❌ Welcome channel not found via ID")
+                ts = datetime.fromisoformat(entry["timestamp"])
+                if datetime.utcnow() - ts > timedelta(hours=24):
+                    guild = self.bot.get_guild(GUILD_ID)
+                    member = guild.get_member(int(user_id))
+                    if member:
+                        await member.kick(reason="Nicht innerhalb von 24h verifiziert")
+                        print(f"❌ Kicked {member} (nicht verifiziert)")
+                    to_remove.append(user_id)
             except Exception as e:
-                print(f"❌ Error sending welcome embed: {e}")
+                print(f"Fehler beim Kick-Check: {e}")
 
-        # Persistent Views für Buttons registrieren
-        try:
-            ticket_data = load_ticket_data()
-            active_tickets = ticket_data.get("active_tickets", {})
+        for uid in to_remove:
+            data.pop(uid, None)
 
-            self.bot.add_view(TicketCreateView(self.bot, active_tickets))
-            self.bot.add_view(VerifyButton(role_id=0))  # Wird im on_ready dynamisch ersetzt
-            print("✅ Persistent views registered.")
-        except Exception as e:
-            print(f"❌ Failed to register views: {e}")
-
-        # Slash-Commands synchronisieren
-        try:
-            synced = await self.bot.tree.sync()
-            print(f"✅ Synced {len(synced)} slash command(s).")
-        except Exception as e:
-            print(f"❌ Slash command sync failed: {e}")
-
-        print(f"{self.bot.user} is online.")
+        with open(JOIN_DATA_PATH, "w") as f:
+            json.dump(data, f, indent=4)
 
 async def setup(bot):
-    if bot.get_cog("OnReady") is None:
-        await bot.add_cog(OnReady(bot))
-    else:
-        print("⚠️ OnReady already registered – skipping.")
+    await bot.add_cog(Welcomer(bot))
