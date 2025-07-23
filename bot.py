@@ -21,10 +21,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
 bot.owner_id = int(os.getenv("OWNER_ID"))
 
 
-# --- Event: Bot gestartet ---
-@bot.event
-async def on_ready():
-    print(f"✅ {bot.user} is online!")
+
 
 # --- Befehl: Status prüfen ---
 @bot.command()
