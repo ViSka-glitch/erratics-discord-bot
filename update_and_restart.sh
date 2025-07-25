@@ -43,15 +43,15 @@ git pull | tee -a "$LOGFILE"
 
 # === Stop running container ===
 echo "🛑 Stopping running container..." | tee -a "$LOGFILE"
-docker compose down | tee -a "$LOGFILE"
+docker-compose down | tee -a "$LOGFILE"
 
 # === Rebuild Docker image ===
 echo "🔧 Rebuilding Docker image..." | tee -a "$LOGFILE"
-docker compose build | tee -a "$LOGFILE"
+docker-compose build | tee -a "$LOGFILE"
 
 # === Start container ===
 echo "🚀 Starting container..." | tee -a "$LOGFILE"
-docker compose up -d | tee -a "$LOGFILE"
+docker-compose up -d | tee -a "$LOGFILE"
 
 MSG=":arrows_counterclockwise: **Bot updated and restarted!**
 Git updated from \`$LOCAL\` to \`$REMOTE\`
