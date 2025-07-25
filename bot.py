@@ -1,4 +1,6 @@
 # --- bot.py ---
+print("🟢 Bot is starting...")
+
 import discord
 from discord.ext import commands
 import asyncio
