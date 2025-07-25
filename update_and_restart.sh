@@ -24,7 +24,7 @@ LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git ls-remote origin main | awk '{print $1}')
 
 if [ "$LOCAL" = "$REMOTE" ]; then
-    echo "✅ Already up to date. No update necessary." | tee -a "$LOGFILE"
+    echo "✅ Already up to date. No update necessary. woOp woOp" | tee -a "$LOGFILE"
     exit 0
 fi
 
