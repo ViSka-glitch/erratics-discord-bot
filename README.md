@@ -1,160 +1,92 @@
+
 # Erratics Discord Bot 🤖
 
-![Python](https://img.shields.io/badge/python-3.12-blue) ![Discord.py](https://img.shields.io/badge/discord--py-2.5-green)  
+![Python](https://img.shields.io/badge/python-3.12-blue) ![Discord.py](https://img.shields.io/badge/discord--py-2.5-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 ---
 
-## 🇩🇪 Beschreibung
+## What is Erratics?
 
-Erratics ist ein modularer Discord-Bot mit Ticket‑System, Verifikations‑Workflow und mehr – in Python (`discord.py`) entwickelt.
+Erratics is a modular Discord bot written in Python (`discord.py`). It features a ticket system, verification workflow, moderation tools, logging, and more.
 
-### 🔧 Funktionen
+### Features
 
-- **Willkommensflow mit Verifizierung**  
-  - Private Nachricht mit „✅ Verify“-Button beim Join  
-  - Öffentliche Willkommensnachricht nach Klick  
-  - Auto‑Kick bei Nicht‑Verifizierung nach 24 h
+- **Verification Welcome Flow**
+  - Private “✅ Verify” button on join
+  - Public welcome message after verification
+  - Auto-kick after 24h if not verified
 
-- **Ticket‑System**  
-  - Automatisch aktualisierbares Ticket‑Panel  
-  - Kategorien‑Auswahl, Upload‑Support, Schließen/Archivieren/Abbrechen etc.
+- **Ticket System**
+  - Live-updating ticket panel
+  - Category selection, file upload support, close/archive/cancel
+  - Persistent ticket logs and user tracking (see `tickets.json`)
 
-- **Moderation & Utilities**  
-  - Slash‑Commands, Logging, Rollen‑Verwaltung, Pomodoro, u.v.m.
+- **Moderation & Utilities**
+  - Slash commands, logging to file and channel, role management, Pomodoro timer, and more
 
-### 🛠️ Installation & Setup
+### Installation & Setup
 
-1. Repo klonen  
+1. Clone the repository:
    ```bash
    git clone https://github.com/ViSka-glitch/erratics-discord-bot.git
    cd erratics-discord-bot
    ```
 
-2. `.env` erstellen und ausfüllen  
+2. Create and fill your `.env` file:
    ```env
-   DISCORD_TOKEN=dein_token
+   DISCORD_TOKEN=your_token
    ```
 
-3. Python‑Umgebung & Installation  
+3. Set up Python environment and install dependencies:
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-4. Cogs laden:  
-   - `welcomer.py` → Automatischer Verifikations‑Flow  
-   - `tickets.py`, `mod.py` etc.
-
-5. Bot starten  
+4. Start the bot:
    ```bash
    python3 bot.py
    ```
 
-### ⚙️ Systemd (optional)
+### Optional: Systemd Service
 
-Wenn du den Bot als `discord-bot.service` betreibst:
-
+To run the bot as a service:
 ```bash
 sudo cp example/discord-bot.service /etc/systemd/system/
 sudo systemctl enable discord-bot
 ```
 
-Und mit dem Script:
-
+Use the update script:
 ```bash
 bash update_and_restart.sh
 ```
 
-### 🖥️ Daten & Token‑Sicherheit
+### Data & Security
 
-- **`.env` bleibt lokal** – ist in `.gitignore`
-- Private Keys und Tokens **niemals comitten**
-- `join_pending.json` hält temporäre Daten – automatisch bereinigt
-
----
-
-### 🚀 Roadmap
-
-- 📎 Ticket‑System um Dateiuploads erweitern  
-- 🇬🇧 Mehrsprachige Willkommensnachrichten  
-- 📋 Regel‑Akzeptanz‑Checkbox vor Rollenvergabe  
-- 🧩 Weitere Module (Games, Music, Stats…)
+- `.env` is ignored by Git – keep tokens local
+- Never commit private keys or tokens
+- `join_pending.json` and `tickets.json` store temporary and persistent data
+- All logs and errors are sent to a dedicated log channel and/or file
 
 ---
 
-## 🇬🇧 English
+### Roadmap
 
-### ❓ What is this?
-
-Erratics is a modular Discord bot in Python (`discord.py`), featuring a ticket system, verification workflow, and more.
-
-### 🛠️ Features
-
-- **Verification welcome flow**  
-  - Private “✅ Verify” button on join  
-  - Public welcome message upon verification  
-  - Auto‑kick after 24 h if unverified
-
-- **Ticket System**  
-  - Live‑updating ticket panel  
-  - Category chooser, upload support, close/archive/cancel
-
-- **Moderation & Utilities**  
-  - Slash commands, logging, role management, Pomodoro, and more
-
-### 📦 Installation
-
-```bash
-git clone https://github.com/ViSka-glitch/erratics-discord-bot.git
-cd erratics-discord-bot
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Create `.env`:
-```env
-DISCORD_TOKEN=your_token
-```
-
-Then run:
-```bash
-python3 bot.py
-```
-
-### ⚙️ Optional Systemd Setup
-
-Use the provided example service file:
-```bash
-sudo cp example/discord-bot.service /etc/systemd/system/
-sudo systemctl enable discord-bot
-```
-
-Use `update_and_restart.sh` for updating & restarting.
-
-### 🔐 Security
-
-- `.env` is ignored by Git – keep tokens local.  
-- `join_pending.json` auto-cleaned after 24 h.
-
-### 📌 Roadmap
-
-- Add support for file uploads in tickets  
-- Multi‑language welcome messages  
-- Rules acceptance checkbox before role assignment  
+- Add support for file uploads in tickets
+- Multi-language welcome messages
+- Rules acceptance checkbox before role assignment
 - More modules (games, music, stats…)
 
 ---
 
-## 📝 License
+## License
 
 MIT License – see `LICENSE.md`.
 
 ---
 
-### 👋 Contributing
+## Contributing
 
-Want to help? Please create issues for bug reports or feature requests, and submit PRs! We’ll review asap.
+Want to help? Please create issues for bug reports or feature requests, and submit PRs! We’ll review as soon as possible.

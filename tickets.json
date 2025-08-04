@@ -1,4 +1,8 @@
 {
   "active_tickets": {},
-  "panel_message_id": null
+  "panel_message_id": null,
+  "ticket_logs": {},
+  "closed_tickets": {},
+  "users": {},
+  "timestamps": {}
 }

@@ -2,6 +2,9 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
+
 from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
 from config.ids import LOG_CHANNEL_ID
 
@@ -36,21 +39,22 @@ class OnReady(commands.Cog):
             active_tickets = ticket_data.get("active_tickets", {})
 
             self.bot.add_view(TicketCreateView(self.bot, active_tickets))
-            print("✅ Persistent views registered.")
+            logging.info("✅ Persistent views registered.")
         except Exception as e:
-            print(f"❌ Failed to register views: {e}")
+            logging.error(f"❌ Failed to register views: {e}")
 
         # Slash-Commands synchronisieren
         try:
             synced = await self.bot.tree.sync()
-            print(f"✅ Synced {len(synced)} slash command(s).")
+            logging.info(f"✅ Synced {len(synced)} slash command(s).")
         except Exception as e:
-            print(f"❌ Slash command sync failed: {e}")
+            logging.error(f"❌ Slash command sync failed: {e}")
 
         print(f"{self.bot.user} is online.")
+        logging.info(f"{self.bot.user} is online.")
 
 async def setup(bot):
     if bot.get_cog("OnReady") is None:
         await bot.add_cog(OnReady(bot))
     else:
-        print("⚠️ OnReady already registered – skipping.")
+        logging.warning("⚠️ OnReady already registered – skipping.")

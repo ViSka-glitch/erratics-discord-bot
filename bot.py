@@ -20,10 +20,11 @@ intents.messages = True
 intents.reactions = True
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
-bot.owner_id = int(os.getenv("OWNER_ID"))
 
-
-
+owner_id_str = os.getenv("OWNER_ID")
+if owner_id_str is None:
+    raise ValueError("OWNER_ID is not set in the environment variables.")
+bot.owner_id = int(owner_id_str)
 
 # --- Befehl: Status prüfen ---
 @bot.command()

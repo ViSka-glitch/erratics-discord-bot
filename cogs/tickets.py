@@ -3,6 +3,8 @@ from discord.ext import commands
 from discord import ui, app_commands
 import io
 import json
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 import asyncio
 from pathlib import Path
 from config.ids import (
@@ -56,6 +58,12 @@ class OpenTicketButton(ui.Button):
         )
 
 class TicketSystem(commands.Cog):
+    async def log_action(self, guild, message):
+        log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+        if log_channel:
+            await log_channel.send(message)
+        else:
+            logging.warning(f"Log-Channel mit ID {TICKET_LOG_CHANNEL_ID} nicht gefunden.")
     def __init__(self, bot):
         self.bot = bot
         self.ticket_data = load_ticket_data()
@@ -66,7 +74,9 @@ class TicketSystem(commands.Cog):
         guild = self.bot.guilds[0]
         channel = guild.get_channel(TICKET_PANEL_CHANNEL_ID)
         if not channel:
-            print(f"❌ Ticket panel channel ID {TICKET_PANEL_CHANNEL_ID} not found.")
+            msg = f"❌ Ticket panel channel ID {TICKET_PANEL_CHANNEL_ID} not found."
+            logging.error(msg)
+            await self.log_action(guild, msg)
             return
 
         embed = discord.Embed(
@@ -83,14 +93,16 @@ class TicketSystem(commands.Cog):
             if panel_message_id:
                 msg = await channel.fetch_message(panel_message_id)
                 await msg.edit(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
-                print("♻️ Ticket panel updated.")
+                logging.info("♻️ Ticket panel updated.")
+                await self.log_action(guild, "♻️ Ticket panel updated.")
             else:
                 raise discord.NotFound(response=None, message="No stored message ID")
         except (discord.NotFound, discord.HTTPException):
             msg = await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
             self.ticket_data["panel_message_id"] = msg.id
             save_ticket_data(self.ticket_data)
-            print("📩 Ticket panel sent.")
+            logging.info("📩 Ticket panel sent.")
+            await self.log_action(guild, "📩 Ticket panel sent.")
 
 class CategorySelectView(ui.View):
     def __init__(self, bot, active_tickets):
@@ -121,23 +133,40 @@ class CategoryButton(ui.Button):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
         }
 
-        ticket_channel = await guild.create_text_channel(
-            name=f"ticket-{self.category_key}-{user.name}",
-            overwrites=overwrites,
-            reason=f"New support ticket - {self.category_key}"
-        )
+        try:
+            ticket_channel = await guild.create_text_channel(
+                name=f"ticket-{self.category_key}-{user.name}",
+                overwrites=overwrites,
+                reason=f"New support ticket - {self.category_key}"
+            )
+        except Exception as e:
+            msg = f"❌ Error creating ticket channel: {e}"
+            logging.error(msg)
+            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(msg)
+            await interaction.response.send_message(msg, ephemeral=True)
+            return
 
         self.active_tickets[str(user.id)] = ticket_channel.id
         self.bot.get_cog("TicketSystem").ticket_data["active_tickets"] = self.active_tickets
         save_ticket_data(self.bot.get_cog("TicketSystem").ticket_data)
 
         mod_ping = f"<@&{MOD_ROLE_ID}>"
-        await ticket_channel.send(
-            content=f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.",
-            view=TicketCloseView(self.bot, self.active_tickets, user.id)
-        )
+        try:
+            await ticket_channel.send(
+                content=f"{mod_ping} 🎫 {user.mention}, welcome!\nPlease describe your issue related to **{CATEGORY_CHOICES[self.category_key]['label']}**.",
+                view=TicketCloseView(self.bot, self.active_tickets, user.id)
+            )
+        except Exception as e:
+            msg = f"❌ Error sending welcome message in ticket: {e}"
+            logging.error(msg)
+            log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(msg)
 
         await interaction.response.send_message(f"✅ Ticket for {CATEGORY_CHOICES[self.category_key]['label']} created!", ephemeral=True)
+        await self.bot.get_cog("TicketSystem").log_action(guild, f"✅ Ticket for {CATEGORY_CHOICES[self.category_key]['label']} created by {user}.")
 
         log_channel = guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_channel:
@@ -173,7 +202,10 @@ class CategoryButton(ui.Button):
                 save_ticket_data(self.bot.get_cog("TicketSystem").ticket_data)
 
             except Exception as e:
-                print(f"❌ ERROR during auto-close: {repr(e)}")
+                msg = f"❌ ERROR during auto-close: {repr(e)}"
+                logging.error(msg)
+                if log_channel:
+                    await log_channel.send(msg)
 
 class TicketCloseView(ui.View):
     def __init__(self, bot, active_tickets, user_id):

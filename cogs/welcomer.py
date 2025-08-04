@@ -4,6 +4,9 @@ import json
 import os
 from datetime import datetime, timedelta
 from config.ids import GUILD_ID, WELCOME_CHANNEL_ID, VERIFY_ROLE_ID
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
+LOG_CHANNEL_ID = 1392804951553736717
 
 JOIN_DATA_PATH = "data/join_pending.json"
 
@@ -25,12 +28,19 @@ class VerifyView(discord.ui.View):
 
         try:
             await interaction.message.delete()
-        except:
-            pass
+        except Exception as e:
+            logging.warning(f"Could not delete verify message: {e}")
+            log_channel = guild.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(f"⚠️ Could not delete verify message for {interaction.user.mention}: {e}")
 
         welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
         if welcome_channel:
             await welcome_channel.send(f"🎉 Welcome {interaction.user.mention} to the server!")
+            logging.info(f"User {interaction.user} ({interaction.user.id}) verified and welcomed.")
+            log_channel = guild.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(f"✅ User {interaction.user.mention} verified and welcomed.")
 
         # Remove user from join_pending.json
         if os.path.exists(JOIN_DATA_PATH):
@@ -64,17 +74,24 @@ class Welcomer(commands.Cog):
         file = discord.File("assets/erratics_welcome.png", filename="welcome.png")
         embed.set_image(url="attachment://welcome.png")
 
-        message = await channel.send(
-            content=member.mention,
-            embed=embed,
-            view=view,
-            file=file
-        )
-
         try:
+            message = await channel.send(
+                content=member.mention,
+                embed=embed,
+                view=view,
+                file=file
+            )
             await message.edit(view=view)
-        except:
-            pass
+            logging.info(f"Welcome message sent for {member} ({member.id}) in guild '{member.guild.name}' ({member.guild.id}).")
+            log_channel = member.guild.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(f"👋 Welcome message sent for {member.mention}.")
+        except Exception as e:
+            logging.error(f"Error sending welcome message for {member}: {e}")
+            log_channel = member.guild.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                await log_channel.send(f"❌ Error sending welcome message for {member.mention}: {e}")
+            return
 
         os.makedirs(os.path.dirname(JOIN_DATA_PATH), exist_ok=True)
         if os.path.exists(JOIN_DATA_PATH):
@@ -109,10 +126,17 @@ class Welcomer(commands.Cog):
                     member = guild.get_member(int(user_id))
                     if member:
                         await member.kick(reason="Did not verify within 24h")
-                        print(f"❌ Kicked {member} (not verified)")
+                        logging.info(f"❌ Kicked {member} ({member.id}) for not verifying in time.")
+                        log_channel = guild.get_channel(LOG_CHANNEL_ID)
+                        if log_channel:
+                            await log_channel.send(f"❌ Kicked {member.mention} for not verifying in time.")
                     to_remove.append(user_id)
             except Exception as e:
-                print(f"Error during kick check: {e}")
+                logging.error(f"Error during kick check for user {user_id}: {e}")
+                guild = self.bot.get_guild(GUILD_ID)
+                log_channel = guild.get_channel(LOG_CHANNEL_ID) if guild else None
+                if log_channel:
+                    await log_channel.send(f"⚠️ Error during kick check for user {user_id}: {e}")
 
         for uid in to_remove:
             data.pop(uid, None)

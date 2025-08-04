@@ -38,12 +38,26 @@ class Basic(commands.Cog):
     async def serverinvite(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
-        invite = await interaction.channel.create_invite(max_age=0, max_uses=0, unique=True)
-        qr = qrcode.make(invite.url)
-        buffer = BytesIO()
-        qr.save(buffer, format="PNG")
-        buffer.seek(0)
-        file = discord.File(buffer, filename="invite_qr.png")
+        try:
+            invite = await interaction.channel.create_invite(max_age=0, max_uses=0, unique=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Could not create invite: {e}", ephemeral=True)
+            return
+
+        try:
+            qr = qrcode.make(invite.url)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Could not generate QR code: {e}", ephemeral=True)
+            return
+
+        try:
+            buffer = BytesIO()
+            qr.save(buffer, format="PNG")
+            buffer.seek(0)
+            file = discord.File(buffer, filename="invite_qr.png")
+        except Exception as e:
+            await interaction.followup.send(f"❌ Could not prepare QR code file: {e}", ephemeral=True)
+            return
 
         embed = discord.Embed(
             title="🌐 You're invited to Erratics!",
@@ -59,6 +73,8 @@ class Basic(commands.Cog):
             await interaction.followup.send(
                 "❌ I couldn't send you a DM. Please check your privacy settings.", ephemeral=True
             )
+        except Exception as e:
+            await interaction.followup.send(f"❌ Could not send DM: {e}", ephemeral=True)
         else:
             await interaction.followup.send("✅ Invite sent to your DMs!", ephemeral=True)
 
