@@ -5,6 +5,7 @@ import json
 import os
 import asyncio
 import logging
+import subprocess
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 
 class Developer(commands.Cog):
@@ -130,6 +131,17 @@ class Developer(commands.Cog):
         embed.add_field(name="Roles", value="\n".join([f"{k}: `{v}`" for k, v in roles.items()]) or "-", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="updatebot", description="Run update_and_restart.sh and show the result (Owner only)")
+    @is_owner()
+    async def updatebot(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            result = subprocess.run(["bash", "update_and_restart.sh"], capture_output=True, text=True, timeout=120)
+            output = result.stdout[-1800:] if result.stdout else "No output."
+            await interaction.followup.send(f"✅ Update script executed. Output:\n```{output}```", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error running update script: {e}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Developer(bot))
