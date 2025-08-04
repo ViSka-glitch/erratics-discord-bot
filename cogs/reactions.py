@@ -22,6 +22,26 @@ class Reactions(commands.Cog):
             await log_channel.send(message)
         else:
             logging.warning(f"Log-Channel mit ID {LOG_CHANNEL_ID} nicht gefunden.")
+    @commands.command(name="post_reaction_roles")
+    @commands.has_permissions(administrator=True)
+    async def post_reaction_roles(self, ctx):
+        """Postet ein Embed mit den Reaction-Rollen im Channel-Unlocker und fügt die Emojis hinzu."""
+        channel_unlocker_id = 1392804917378416732
+        channel = ctx.guild.get_channel(channel_unlocker_id)
+        if not channel:
+            await ctx.send(f"❌ Channel-Unlocker mit ID {channel_unlocker_id} nicht gefunden.")
+            return
+        embed = discord.Embed(title="Channel Unlocker: Game Roles",
+                              description="React with the matching emoji to unlock access to the game categories!",
+                              color=discord.Color.blue())
+        embed.add_field(name="🧟 7 Days Outpost", value="Unlock access to 7 Days to Die", inline=False)
+        embed.add_field(name="🏹 Valheim Nexus", value="Unlock access to Valheim", inline=False)
+        embed.add_field(name="🚀 SE Cluster", value="Unlock access to Space Engineers", inline=False)
+        msg = await channel.send(embed=embed)
+        # Emojis hinzufügen
+        for emoji in ["🧟", "🏹", "🚀"]:
+            await msg.add_reaction(emoji)
+        await ctx.send(f"✅ Reaction-Rollen Nachricht im Channel-Unlocker gepostet.")
     def __init__(self, bot):
         self.bot = bot
 

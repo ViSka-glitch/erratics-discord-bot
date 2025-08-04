@@ -3,10 +3,10 @@ from discord.ext import commands, tasks
 import json
 import os
 from datetime import datetime, timedelta
-from config.ids import GUILD_ID, WELCOME_CHANNEL_ID, VERIFY_ROLE_ID
+from config.ids import GUILD_ID, WELCOME_CHANNEL_ID, VERIFY_ID, LOG_CHANNEL_ID
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
-LOG_CHANNEL_ID = 1392804951553736717
+    # ...existing code...
 
 JOIN_DATA_PATH = "data/join_pending.json"
 
@@ -22,7 +22,7 @@ class VerifyView(discord.ui.View):
             return
 
         guild = interaction.guild
-        role = guild.get_role(VERIFY_ROLE_ID)
+        role = guild.get_role(VERIFY_ID)
         if role:
             await interaction.user.add_roles(role, reason="User verified")
 
