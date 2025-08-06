@@ -1,11 +1,18 @@
 #!/bin/bash
 
+
 # === CONFIGURATION ===
 BOTDIR="/opt/discord-bot"
 BACKUPDIR="$BOTDIR/backups"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-WEBHOOK_URL="https://discordapp.com/api/webhooks/1398411241055322131/EsNYtsizTOvZ_pP-e6rinxa1Osrebp007pOY_Q9mE6nhf2ev6dsX2-6PCHXQ615sFjiR"
 LOGFILE="$BOTDIR/logs/update.log"
+
+# Load .env if present
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+WEBHOOK_URL="$DISCORD_WEBHOOK_URL"
 
 cd "$BOTDIR" || exit 1
 
