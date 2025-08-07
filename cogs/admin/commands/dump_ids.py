@@ -4,7 +4,9 @@ import logging
 import os
 
 async def dump_ids_command(self, interaction: discord.Interaction):
+    logging.info("[dump_ids] Start command execution.")
     await interaction.response.defer(ephemeral=True)
+    logging.info("[dump_ids] Deferred interaction response.")
     guild = interaction.guild
     if not guild:
         await interaction.followup.send("This command must be used in a server.", ephemeral=True)
@@ -16,7 +18,8 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         if dups:
             msg = f"⚠️ Duplicate {typ} names detected: {', '.join(dups)}"
             logging.warning(msg)
-            await self.send_log_channel(msg)
+            # await self.send_log_channel(msg)
+    logging.info("[dump_ids] Checking for duplicate names...")
     await warn_duplicates(guild.categories, "category")
     await warn_duplicates(guild.text_channels, "text channel")
     await warn_duplicates(guild.voice_channels, "voice channel")
@@ -25,7 +28,9 @@ async def dump_ids_command(self, interaction: discord.Interaction):
     if hasattr(guild, 'announcement_channels'): await warn_duplicates(guild.announcement_channels, "announcement channel")
     if hasattr(guild, 'threads'): await warn_duplicates(guild.threads, "thread")
     await warn_duplicates(guild.roles, "role")
+    logging.info("[dump_ids] Duplicate check done.")
 
+    logging.info("[dump_ids] Collecting guild data...")
     categories = {cat.name: cat.id for cat in guild.categories}
     text_channels = {ch.name: ch.id for ch in guild.text_channels}
     voice_channels = {ch.name: ch.id for ch in guild.voice_channels}
@@ -34,6 +39,7 @@ async def dump_ids_command(self, interaction: discord.Interaction):
     announcement_channels = {ch.name: ch.id for ch in guild.announcement_channels} if hasattr(guild, 'announcement_channels') else {}
     threads = {thread.name: thread.id for thread in guild.threads} if hasattr(guild, 'threads') else {}
     roles = {role.name: role.id for role in guild.roles}
+    logging.info("[dump_ids] Guild data collected.")
 
     output = {
         "guild_id": guild.id,
@@ -46,27 +52,32 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         "threads": threads,
         "roles": roles
     }
+    logging.info("[dump_ids] Output dict created.")
 
     try:
+        logging.info("[dump_ids] Creating data directory...")
         os.makedirs("data", exist_ok=True)
+        logging.info("[dump_ids] Data directory created or already exists.")
     except Exception as e:
         msg = f"❌ Error creating data directory: {e}"
         logging.error(msg)
-        await self.send_log_channel(msg)
+        # await self.send_log_channel(msg)
         await interaction.followup.send(msg, ephemeral=True)
         return
     try:
+        logging.info("[dump_ids] Writing dump_ids.json...")
         with open("data/dump_ids.json", "w") as f:
             json.dump(output, f, indent=4)
-        logging.info("IDs exported successfully.")
-        await self.send_log_channel("✅ IDs exported successfully.")
+        logging.info("[dump_ids] IDs exported successfully.")
+        # await self.send_log_channel("✅ IDs exported successfully.")
     except Exception as e:
         msg = f"❌ Error writing IDs: {e}"
         logging.error(msg)
-        await self.send_log_channel(msg)
+        # await self.send_log_channel(msg)
         await interaction.followup.send(f"❌ Error writing file: {e}", ephemeral=True)
         return
 
+    logging.info("[dump_ids] Preparing embed...")
     embed = discord.Embed(title="🧩 Server ID Dump", color=discord.Color.blue())
     embed.add_field(name="Categories", value="\n".join([f"{k}: `{v}`" for k, v in categories.items()]) or "-", inline=False)
     embed.add_field(name="Text Channels", value="\n".join([f"{k}: `{v}`" for k, v in text_channels.items()]) or "-", inline=False)
@@ -76,5 +87,6 @@ async def dump_ids_command(self, interaction: discord.Interaction):
     embed.add_field(name="Announcement Channels", value="\n".join([f"{k}: `{v}`" for k, v in announcement_channels.items()]) or "-", inline=False)
     embed.add_field(name="Threads", value="\n".join([f"{k}: `{v}`" for k, v in threads.items()]) or "-", inline=False)
     embed.add_field(name="Roles", value="\n".join([f"{k}: `{v}`" for k, v in roles.items()]) or "-", inline=False)
-
+    logging.info("[dump_ids] Sending embed to Discord...")
     await interaction.followup.send(embed=embed, ephemeral=True)
+    logging.info("[dump_ids] Command finished.")
