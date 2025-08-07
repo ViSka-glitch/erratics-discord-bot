@@ -20,8 +20,8 @@ ARCHIVE_DELAY_SECONDS = 15
 
 CATEGORY_CHOICES = {
     "valheim": {"label": "🪓 Valheim", "emoji": "🪓"},
-    "ark_sa": {"label": "🦖 Ark SA", "emoji": "🦖"},
-    "space_engineers": {"label": "💪 Space Engineers", "emoji": "💪"},
+    "space_engineers": {"label": "� Space Engineers", "emoji": "�"},
+    "7d2d": {"label": "🧟 7 Days to Die", "emoji": "🧟"},
     "general": {"label": "💬 General stuff", "emoji": "💬"},
     "pixelgear": {"label": "🎮 PixelGear", "emoji": "🎮"}
 }

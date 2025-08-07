@@ -12,7 +12,8 @@ ROLE_EMOJI_MAP = {
     "✅": VERIFY_ID,  # Verifizierung
     "🧟": 1402000607207886928,  # 7 Days Outpost
     "🏹": 1401999743898357952,  # Valheim Nexus
-    "🚀": 1402000758697889963   # SE Cluster
+    "🚀": 1402000758697889963,  # SE Cluster
+    "🎮": 1403079310998241371   # PixelGear
 }
 
 

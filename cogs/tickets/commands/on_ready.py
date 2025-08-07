@@ -27,7 +27,7 @@ async def on_ready_handler(self):
             logging.info("♻️ Ticket panel updated.")
             await self.log_action(guild, "♻️ Ticket panel updated.")
         else:
-            raise discord.NotFound(response=None, message="No stored message ID")
+            raise RuntimeError("No stored message ID for ticket panel.")
     except (discord.NotFound, discord.HTTPException):
         msg = await channel.send(embed=embed, view=TicketCreateView(self.bot, self.active_tickets))
         self.ticket_data["panel_message_id"] = msg.id
