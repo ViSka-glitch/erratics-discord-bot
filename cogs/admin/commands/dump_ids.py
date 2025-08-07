@@ -46,7 +46,14 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         "roles": roles
     }
 
-    os.makedirs("data", exist_ok=True)
+    try:
+        os.makedirs("data", exist_ok=True)
+    except Exception as e:
+        msg = f"❌ Error creating data directory: {e}"
+        logging.error(msg)
+        await self.send_log_channel(msg)
+        await interaction.response.send_message(msg, ephemeral=True)
+        return
     try:
         with open("data/dump_ids.json", "w") as f:
             json.dump(output, f, indent=4)
