@@ -78,15 +78,29 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         return
 
     logging.info("[dump_ids] Preparing embed...")
+    def safe_field_value(lines):
+        joined = "\n".join(lines)
+        if len(joined) <= 1024:
+            return joined or "-"
+        # Kürzen, bis es passt
+        result = []
+        total = 0
+        for line in lines:
+            if total + len(line) + 1 > 1020:  # 1020, damit noch Platz für ...
+                break
+            result.append(line)
+            total += len(line) + 1
+        return "\n".join(result) + "\n..."
+
     embed = discord.Embed(title="🧩 Server ID Dump", color=discord.Color.blue())
-    embed.add_field(name="Categories", value="\n".join([f"{k}: `{v}`" for k, v in categories.items()]) or "-", inline=False)
-    embed.add_field(name="Text Channels", value="\n".join([f"{k}: `{v}`" for k, v in text_channels.items()]) or "-", inline=False)
-    embed.add_field(name="Voice Channels", value="\n".join([f"{k}: `{v}`" for k, v in voice_channels.items()]) or "-", inline=False)
-    embed.add_field(name="Stage Channels", value="\n".join([f"{k}: `{v}`" for k, v in stage_channels.items()]) or "-", inline=False)
-    embed.add_field(name="Forum Channels", value="\n".join([f"{k}: `{v}`" for k, v in forum_channels.items()]) or "-", inline=False)
-    embed.add_field(name="Announcement Channels", value="\n".join([f"{k}: `{v}`" for k, v in announcement_channels.items()]) or "-", inline=False)
-    embed.add_field(name="Threads", value="\n".join([f"{k}: `{v}`" for k, v in threads.items()]) or "-", inline=False)
-    embed.add_field(name="Roles", value="\n".join([f"{k}: `{v}`" for k, v in roles.items()]) or "-", inline=False)
+    embed.add_field(name="Categories", value=safe_field_value([f"{k}: `{v}`" for k, v in categories.items()]), inline=False)
+    embed.add_field(name="Text Channels", value=safe_field_value([f"{k}: `{v}`" for k, v in text_channels.items()]), inline=False)
+    embed.add_field(name="Voice Channels", value=safe_field_value([f"{k}: `{v}`" for k, v in voice_channels.items()]), inline=False)
+    embed.add_field(name="Stage Channels", value=safe_field_value([f"{k}: `{v}`" for k, v in stage_channels.items()]), inline=False)
+    embed.add_field(name="Forum Channels", value=safe_field_value([f"{k}: `{v}`" for k, v in forum_channels.items()]), inline=False)
+    embed.add_field(name="Announcement Channels", value=safe_field_value([f"{k}: `{v}`" for k, v in announcement_channels.items()]), inline=False)
+    embed.add_field(name="Threads", value=safe_field_value([f"{k}: `{v}`" for k, v in threads.items()]), inline=False)
+    embed.add_field(name="Roles", value=safe_field_value([f"{k}: `{v}`" for k, v in roles.items()]), inline=False)
     logging.info("[dump_ids] Sending embed to Discord...")
     await interaction.followup.send(embed=embed, ephemeral=True)
     logging.info("[dump_ids] Command finished.")
