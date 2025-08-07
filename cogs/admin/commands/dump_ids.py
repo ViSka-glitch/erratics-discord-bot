@@ -4,9 +4,10 @@ import logging
 import os
 
 async def dump_ids_command(self, interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
     guild = interaction.guild
     if not guild:
-        await interaction.response.send_message("This command must be used in a server.", ephemeral=True)
+        await interaction.followup.send("This command must be used in a server.", ephemeral=True)
         return
 
     async def warn_duplicates(items, typ):
@@ -52,7 +53,7 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         msg = f"❌ Error creating data directory: {e}"
         logging.error(msg)
         await self.send_log_channel(msg)
-        await interaction.response.send_message(msg, ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
         return
     try:
         with open("data/dump_ids.json", "w") as f:
@@ -63,7 +64,7 @@ async def dump_ids_command(self, interaction: discord.Interaction):
         msg = f"❌ Error writing IDs: {e}"
         logging.error(msg)
         await self.send_log_channel(msg)
-        await interaction.response.send_message(f"❌ Error writing file: {e}", ephemeral=True)
+        await interaction.followup.send(f"❌ Error writing file: {e}", ephemeral=True)
         return
 
     embed = discord.Embed(title="🧩 Server ID Dump", color=discord.Color.blue())
@@ -76,4 +77,4 @@ async def dump_ids_command(self, interaction: discord.Interaction):
     embed.add_field(name="Threads", value="\n".join([f"{k}: `{v}`" for k, v in threads.items()]) or "-", inline=False)
     embed.add_field(name="Roles", value="\n".join([f"{k}: `{v}`" for k, v in roles.items()]) or "-", inline=False)
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
