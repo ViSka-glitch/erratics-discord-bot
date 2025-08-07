@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 
-from cogs.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
+from cogs.tickets.tickets import TicketCreateView, load_ticket_data  # 💡 Dateiname angepasst
 from config.ids import LOG_CHANNEL_ID
 
 class OnReady(commands.Cog):
@@ -53,7 +53,7 @@ class OnReady(commands.Cog):
         print(f"{self.bot.user} is online.")
         logging.info(f"{self.bot.user} is online.")
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     if bot.get_cog("OnReady") is None:
         await bot.add_cog(OnReady(bot))
     else:

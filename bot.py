@@ -31,21 +31,29 @@ bot.owner_id = int(owner_id_str)
 async def status(ctx):
     await ctx.send(f"✅ I'm online! {bot.user} is running.")
 
-# --- Erweiterungen laden ---
-async def load_extensions():
-    extensions = [
-        "cogs.basic",
-        "cogs.welcomer",
-        "cogs.mod",
-        "cogs.utilities",
-        "cogs.tickets",
-        "cogs.info",
-        "cogs.system",
-        "cogs.developer",
-        "cogs.reactions",
-        "events.on_ready",
-        "events.on_channel"
-    ]
+# --- Dynamischer Loader für alle Cogs & Events ---
+async def load_all_extensions():
+    cogs_dir = os.path.join(os.path.dirname(__file__), "cogs")
+    events_dir = os.path.join(os.path.dirname(__file__), "events")
+    extensions = []
+
+    # Alle .py-Dateien in /cogs/ (rekursiv)
+    for root, dirs, files in os.walk(cogs_dir):
+        for file in files:
+            if file.endswith(".py") and file != "__init__.py":
+                rel_path = os.path.relpath(root, os.path.dirname(__file__)).replace(os.sep, ".")
+                module = f"{rel_path}.{file[:-3]}"
+                extensions.append(module)
+
+    # Alle .py-Dateien in /events/ (rekursiv)
+    for root, dirs, files in os.walk(events_dir):
+        for file in files:
+            if file.endswith(".py") and file != "__init__.py":
+                rel_path = os.path.relpath(root, os.path.dirname(__file__)).replace(os.sep, ".")
+                module = f"{rel_path}.{file[:-3]}"
+                extensions.append(module)
+
+    # Lade alle Extensions
     for ext in extensions:
         try:
             await bot.load_extension(ext)
@@ -57,7 +65,7 @@ async def load_extensions():
 async def main():
     try:
         async with bot:
-            await load_extensions()
+            await load_all_extensions()
             await bot.start(TOKEN)
     except KeyboardInterrupt:
         print("🛑 Bot shutdown requested (KeyboardInterrupt).")

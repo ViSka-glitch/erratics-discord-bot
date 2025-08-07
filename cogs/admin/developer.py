@@ -55,7 +55,7 @@ class Developer(commands.Cog):
         if channel:
             await channel.send(message)
         else:
-            logging.warning(f"Log-Channel mit ID {self.LOG_CHANNEL_ID} nicht gefunden.")
+            logging.warning(f"Log channel with ID {self.LOG_CHANNEL_ID} not found.")
 
     @app_commands.command(name="dump_ids", description="List all roles, channels, and categories with their IDs")
     @app_commands.checks.has_permissions(administrator=True)
@@ -64,9 +64,6 @@ class Developer(commands.Cog):
         if not guild:
             await interaction.response.send_message("This command must be used in a server.", ephemeral=True)
             return
-
-
-
 
         async def warn_duplicates(items, typ):
             names = [item.name for item in items]
@@ -109,16 +106,14 @@ class Developer(commands.Cog):
         try:
             with open("data/dump_ids.json", "w") as f:
                 json.dump(output, f, indent=4)
-            logging.info("IDs erfolgreich exportiert.")
-            await self.send_log_channel("✅ IDs erfolgreich exportiert.")
+            logging.info("IDs exported successfully.")
+            await self.send_log_channel("✅ IDs exported successfully.")
         except Exception as e:
-            msg = f"❌ Fehler beim Schreiben der IDs: {e}"
+            msg = f"❌ Error writing IDs: {e}"
             logging.error(msg)
             await self.send_log_channel(msg)
-            await interaction.response.send_message(f"❌ Fehler beim Schreiben der Datei: {e}", ephemeral=True)
+            await interaction.response.send_message(f"❌ Error writing file: {e}", ephemeral=True)
             return
-
-
 
         embed = discord.Embed(title="🧩 Server ID Dump", color=discord.Color.blue())
         embed.add_field(name="Categories", value="\n".join([f"{k}: `{v}`" for k, v in categories.items()]) or "-", inline=False)
@@ -143,5 +138,5 @@ class Developer(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Error running update script: {e}", ephemeral=True)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Developer(bot))

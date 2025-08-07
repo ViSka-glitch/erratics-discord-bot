@@ -74,5 +74,5 @@ class System(commands.Cog):
         """Internal check to confirm if user is the bot owner."""
         return interaction.user.id == self.bot.owner_id
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(System(bot))

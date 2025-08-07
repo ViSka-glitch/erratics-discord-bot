@@ -50,5 +50,5 @@ class OnChannelCreate(commands.Cog):
             except Exception as e:
                 logging.error(f"Failed to set permissions for bot role in channel '{channel.name}' ({channel.guild.name}): {e}")
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(OnChannelCreate(bot))

@@ -144,5 +144,5 @@ class Welcomer(commands.Cog):
         with open(JOIN_DATA_PATH, "w") as f:
             json.dump(data, f, indent=4)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Welcomer(bot))

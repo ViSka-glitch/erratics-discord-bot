@@ -101,5 +101,5 @@ class Reactions(commands.Cog):
             return
         await self.log_action(guild, f"❎ `{member}` lost the role `{role.name}` by removing reaction {payload.emoji.name}.")
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Reactions(bot))

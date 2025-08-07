@@ -123,5 +123,5 @@ class Moderation(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Failed to unban user: {e}", ephemeral=True)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))

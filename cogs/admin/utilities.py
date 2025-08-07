@@ -72,5 +72,5 @@ class Utilities(commands.Cog):
             if log_channel:
                 await log_channel.send(error_msg)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(Utilities(bot))

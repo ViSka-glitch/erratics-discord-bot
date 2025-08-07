@@ -276,5 +276,5 @@ class CloseReasonModal(ui.Modal):
             embed.add_field(name="Channel", value=channel.mention, inline=False)
             await log_channel.send(embed=embed)
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(TicketSystem(bot))
