@@ -3,13 +3,20 @@ print("🟢 Bot is starting...")
 
 import discord
 import logging
-# Logging-Konfiguration: Schreibe alle Logs in bot.log
+# Logging-Konfiguration: Schreibe alle Logs in bot.log und Konsole
 logging.basicConfig(
     level=logging.INFO,
     filename="bot.log",
     filemode="a",
-    format="%(asctime)s %(levelname)s %(message)s"
+    format="%(asctime)s %(levelname)s %(message)s",
+    force=True
 )
+# Zusätzlich: StreamHandler für Konsole, falls Datei nicht funktioniert
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
 from discord.ext import commands
 import asyncio
 import os
