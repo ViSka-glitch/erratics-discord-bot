@@ -1,2 +1,2 @@
-async def status_command(bot, ctx):
-    await ctx.send(f"✅ I'm online! {bot.user} is running.")
+async def status_command(interaction):
+    await interaction.response.send_message(f"✅ I'm online! {interaction.client.user} is running.")

@@ -1,10 +1,10 @@
 import discord
 
-async def post_reaction_roles_command(self, ctx):
+async def post_reaction_roles_command(self, interaction):
     channel_unlocker_id = 1392804917378416732
-    channel = ctx.guild.get_channel(channel_unlocker_id)
+    channel = interaction.guild.get_channel(channel_unlocker_id)
     if not channel:
-        await ctx.send(f"❌ Channel unlocker with ID {channel_unlocker_id} not found.")
+        await interaction.response.send_message(f"❌ Channel unlocker with ID {channel_unlocker_id} not found.", ephemeral=True)
         return
     embed = discord.Embed(title="Channel Unlocker: Game Roles",
                           description="React with the matching emoji to unlock access to the game categories!",
@@ -15,4 +15,4 @@ async def post_reaction_roles_command(self, ctx):
     msg = await channel.send(embed=embed)
     for emoji in ["🧟", "🏹", "🚀"]:
         await msg.add_reaction(emoji)
-    await ctx.send(f"✅ Reaction roles message posted in channel unlocker.")
+    await interaction.response.send_message(f"✅ Reaction roles message posted in channel unlocker.", ephemeral=True)

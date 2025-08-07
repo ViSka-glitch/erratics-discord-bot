@@ -27,12 +27,14 @@ if owner_id_str is None:
 bot.owner_id = int(owner_id_str)
 
 
-# Modular command import
-from cogs.bot.commands.status import status_command
 
-@bot.command()
-async def status(ctx):
-    await status_command(bot, ctx)
+# Modular slash command import
+from cogs.bot.commands.status import status_command
+from discord import app_commands
+
+@bot.tree.command(name="status", description="Check if the bot is online.")
+async def status(interaction: discord.Interaction):
+    await status_command(interaction)
 
 # --- Dynamischer Loader für alle Cogs & Events ---
 async def load_all_extensions():

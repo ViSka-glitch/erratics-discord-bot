@@ -21,6 +21,9 @@ from .commands.post_reaction_roles import post_reaction_roles_command
 from .commands.on_raw_reaction_add import on_raw_reaction_add_handler
 from .commands.on_raw_reaction_remove import on_raw_reaction_remove_handler
 
+
+from discord import app_commands
+
 class Reactions(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -32,10 +35,10 @@ class Reactions(commands.Cog):
         else:
             logging.warning(f"Log channel with ID {LOG_CHANNEL_ID} not found.")
 
-    @commands.command(name="post_reaction_roles")
-    @commands.has_permissions(administrator=True)
-    async def post_reaction_roles(self, ctx):
-        await post_reaction_roles_command(self, ctx)
+    @app_commands.command(name="post_reaction_roles", description="Post the reaction roles embed in the unlocker channel.")
+    @app_commands.default_permissions(administrator=True)
+    async def post_reaction_roles(self, interaction: discord.Interaction):
+        await post_reaction_roles_command(self, interaction)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
