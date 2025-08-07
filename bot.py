@@ -2,6 +2,14 @@
 print("🟢 Bot is starting...")
 
 import discord
+import logging
+# Logging-Konfiguration: Schreibe alle Logs in bot.log
+logging.basicConfig(
+    level=logging.INFO,
+    filename="bot.log",
+    filemode="a",
+    format="%(asctime)s %(levelname)s %(message)s"
+)
 from discord.ext import commands
 import asyncio
 import os
