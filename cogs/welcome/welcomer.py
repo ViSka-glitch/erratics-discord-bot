@@ -10,6 +10,11 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(m
 
 JOIN_DATA_PATH = "data/join_pending.json"
 
+
+# Modular handler imports
+from .commands.verify_button import verify_button_handler
+from .commands.kick_check import kick_check_handler
+
 class VerifyView(discord.ui.View):
     def __init__(self, user_id):
         super().__init__(timeout=None)
@@ -17,38 +22,7 @@ class VerifyView(discord.ui.View):
 
     @discord.ui.button(label="✅ Verify", style=discord.ButtonStyle.success, custom_id="verify_button")
     async def verify_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("This button isn't for you.", ephemeral=True)
-            return
-
-        guild = interaction.guild
-        role = guild.get_role(VERIFY_ID)
-        if role:
-            await interaction.user.add_roles(role, reason="User verified")
-
-        try:
-            await interaction.message.delete()
-        except Exception as e:
-            logging.warning(f"Could not delete verify message: {e}")
-            log_channel = guild.get_channel(LOG_CHANNEL_ID)
-            if log_channel:
-                await log_channel.send(f"⚠️ Could not delete verify message for {interaction.user.mention}: {e}")
-
-        welcome_channel = guild.get_channel(WELCOME_CHANNEL_ID)
-        if welcome_channel:
-            await welcome_channel.send(f"🎉 Welcome {interaction.user.mention} to the server!")
-            logging.info(f"User {interaction.user} ({interaction.user.id}) verified and welcomed.")
-            log_channel = guild.get_channel(LOG_CHANNEL_ID)
-            if log_channel:
-                await log_channel.send(f"✅ User {interaction.user.mention} verified and welcomed.")
-
-        # Remove user from join_pending.json
-        if os.path.exists(JOIN_DATA_PATH):
-            with open(JOIN_DATA_PATH, "r") as f:
-                data = json.load(f)
-            data.pop(str(interaction.user.id), None)
-            with open(JOIN_DATA_PATH, "w") as f:
-                json.dump(data, f, indent=4)
+        await verify_button_handler(self, interaction, button, JOIN_DATA_PATH)
 
 class Welcomer(commands.Cog):
     def __init__(self, bot):
@@ -111,38 +85,7 @@ class Welcomer(commands.Cog):
 
     @tasks.loop(minutes=10)
     async def kick_check(self):
-        if not os.path.exists(JOIN_DATA_PATH):
-            return
-
-        with open(JOIN_DATA_PATH, "r") as f:
-            data = json.load(f)
-
-        to_remove = []
-        for user_id, entry in data.items():
-            try:
-                ts = datetime.fromisoformat(entry["timestamp"])
-                if datetime.utcnow() - ts > timedelta(hours=24):
-                    guild = self.bot.get_guild(GUILD_ID)
-                    member = guild.get_member(int(user_id))
-                    if member:
-                        await member.kick(reason="Did not verify within 24h")
-                        logging.info(f"❌ Kicked {member} ({member.id}) for not verifying in time.")
-                        log_channel = guild.get_channel(LOG_CHANNEL_ID)
-                        if log_channel:
-                            await log_channel.send(f"❌ Kicked {member.mention} for not verifying in time.")
-                    to_remove.append(user_id)
-            except Exception as e:
-                logging.error(f"Error during kick check for user {user_id}: {e}")
-                guild = self.bot.get_guild(GUILD_ID)
-                log_channel = guild.get_channel(LOG_CHANNEL_ID) if guild else None
-                if log_channel:
-                    await log_channel.send(f"⚠️ Error during kick check for user {user_id}: {e}")
-
-        for uid in to_remove:
-            data.pop(uid, None)
-
-        with open(JOIN_DATA_PATH, "w") as f:
-            json.dump(data, f, indent=4)
+        await kick_check_handler(self, JOIN_DATA_PATH)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Welcomer(bot))

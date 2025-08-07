@@ -26,10 +26,13 @@ if owner_id_str is None:
     raise ValueError("OWNER_ID is not set in the environment variables.")
 bot.owner_id = int(owner_id_str)
 
-# --- Befehl: Status prüfen ---
+
+# Modular command import
+from cogs.bot.commands.status import status_command
+
 @bot.command()
 async def status(ctx):
-    await ctx.send(f"✅ I'm online! {bot.user} is running.")
+    await status_command(bot, ctx)
 
 # --- Dynamischer Loader für alle Cogs & Events ---
 async def load_all_extensions():

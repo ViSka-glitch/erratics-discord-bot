@@ -4,6 +4,14 @@ from discord import app_commands
 import datetime
 from config.ids import MOD_LOG_ID
 
+
+# Modular command imports (outside the class)
+from .commands.clear import clear_command
+from .commands.kick import kick_command
+from .commands.ban import ban_command
+from .commands.timeout import timeout_command
+from .commands.unban import unban_command
+
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -44,84 +52,28 @@ class Moderation(commands.Cog):
     @app_commands.command(name="clear", description="Delete a number of messages from the current channel.")
     @app_commands.default_permissions(manage_messages=True)
     async def clear(self, interaction: discord.Interaction, amount: int):
-        await interaction.response.defer(ephemeral=True)
-        if amount < 1 or amount > 100:
-            await interaction.followup.send("❌ Please choose a number between 1 and 100.", ephemeral=True)
-            return
-        try:
-            deleted = await interaction.channel.purge(limit=amount)
-            await interaction.followup.send(f"✅ Deleted {len(deleted)} messages.", ephemeral=True)
-            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
-            if log_channel:
-                await log_channel.send(
-                    f"🧹 `{interaction.user}` deleted {len(deleted)} messages in {interaction.channel.mention}"
-                )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Failed to delete messages: {e}", ephemeral=True)
+        await clear_command(self, interaction, amount)
 
     @app_commands.command(name="kick", description="Kick a user from the server.")
     @app_commands.default_permissions(kick_members=True)
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            await member.kick(reason=reason)
-            await interaction.followup.send(f"👢 Kicked {member.mention}", ephemeral=True)
-            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
-            if log_channel:
-                await log_channel.send(
-                    f"👢 `{member}` was kicked by `{interaction.user}`.\n**Reason:** {reason}"
-                )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Failed to kick user: {e}", ephemeral=True)
+        await kick_command(self, interaction, member, reason)
 
     @app_commands.command(name="ban", description="Ban a user from the server.")
     @app_commands.default_permissions(ban_members=True)
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            await member.ban(reason=reason)
-            await interaction.followup.send(f"🔨 Banned {member.mention}", ephemeral=True)
-            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
-            if log_channel:
-                await log_channel.send(
-                    f"🔨 `{member}` was banned by `{interaction.user}`.\n**Reason:** {reason}"
-                )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Failed to ban user: {e}", ephemeral=True)
+        await ban_command(self, interaction, member, reason)
 
     @app_commands.command(name="timeout", description="Temporarily mute a user for a number of minutes.")
     @app_commands.default_permissions(moderate_members=True)
     async def timeout(self, interaction: discord.Interaction, member: discord.Member, duration: int, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            until = discord.utils.utcnow() + datetime.timedelta(minutes=duration)
-            await member.timeout(until, reason=reason)
-            await interaction.followup.send(f"⏳ {member.mention} has been timed out for {duration} minutes.", ephemeral=True)
-
-            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
-            if log_channel:
-                await log_channel.send(
-                    f"⏳ `{member}` was timed out by `{interaction.user}` for {duration} minutes.\n**Reason:** {reason}"
-                )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Failed to timeout user: {e}", ephemeral=True)
+        await timeout_command(self, interaction, member, duration, reason)
 
     @app_commands.command(name="unban", description="Unban a user by their ID.")
     @app_commands.default_permissions(ban_members=True)
     async def unban(self, interaction: discord.Interaction, user_id: str, reason: str = "No reason provided"):
-        await interaction.response.defer(ephemeral=True)
-        try:
-            user = discord.Object(id=int(user_id))
-            await interaction.guild.unban(user, reason=reason)
-            await interaction.followup.send(f"🕊️ User with ID `{user_id}` has been unbanned.", ephemeral=True)
+        await unban_command(self, interaction, user_id, reason)
 
-            log_channel = interaction.guild.get_channel(MOD_LOG_ID)
-            if log_channel:
-                await log_channel.send(
-                    f"🕊️ `{user_id}` was unbanned by `{interaction.user}`.\n**Reason:** {reason}"
-                )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Failed to unban user: {e}", ephemeral=True)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))
