@@ -15,3 +15,5 @@ venv/
 dist/
 build/
 *.egg-info/
+# Scripte
+update_and_restart.sh
