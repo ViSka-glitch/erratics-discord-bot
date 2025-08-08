@@ -34,16 +34,20 @@ class SpaceEngineersRemoteClient:
     async def get_status(self):
         if not self.session:
             return None
+        url = f"{self.uri}/status"
+        headers = {"Authorization": self.key} if self.key else {}
         try:
-            headers = {"Authorization": self.key} if self.key else {}
-            async with self.session.get(f"{self.uri}/status", headers=headers, timeout=5) as resp:
+            logging.info(f"[SE-Remote] GET {url} headers={headers}")
+            async with self.session.get(url, headers=headers, timeout=5) as resp:
+                text = await resp.text()
                 if resp.status == 200:
+                    logging.info(f"[SE-Remote] Status response: {text}")
                     return await resp.json()
                 else:
-                    logging.error(f"[SE-Remote] Status HTTP {resp.status}")
+                    logging.error(f"[SE-Remote] Status HTTP {resp.status} | Response: {text}")
                     return None
         except Exception as e:
-            logging.error(f"[SE-Remote] Status request failed: {e}")
+            logging.error(f"[SE-Remote] Status request failed: {e} | URL: {url} | headers: {headers}")
             return None
 
 
