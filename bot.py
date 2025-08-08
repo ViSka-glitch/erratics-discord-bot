@@ -59,6 +59,9 @@ async def load_all_extensions():
 
     # Alle .py-Dateien in /cogs/ (rekursiv)
     for root, dirs, files in os.walk(cogs_dir):
+        # Überspringe Unterordner namens 'commands'
+        if 'commands' in root.split(os.sep):
+            continue
         for file in files:
             if file.endswith(".py") and file != "__init__.py":
                 rel_path = os.path.relpath(root, os.path.dirname(__file__)).replace(os.sep, ".")
