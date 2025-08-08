@@ -1,7 +1,7 @@
 
 
 import logging
-from vrageapi import VRageRemoteClient
+from vrage_api import VRageRemoteClient
 
 
 
