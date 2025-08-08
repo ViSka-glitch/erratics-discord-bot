@@ -3,6 +3,13 @@ import aiohttp
 import asyncio
 import logging
 
+import hmac
+import hashlib
+import base64
+import random
+import string
+from datetime import datetime, timezone
+
 
 class SpaceEngineersRemoteClient:
     def __init__(self, uri, key=None):
@@ -40,12 +47,35 @@ class SpaceEngineersRemoteClient:
         self.connected = False
 
 
+    def _generate_auth_headers(self, method_url: str, query_params: dict = None):
+        # method_url: z.B. /vrageremote/status
+        # query_params: dict of query params (optional)
+        nonce = str(random.randint(0, 2**31-1))
+        date = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        message = method_url
+        if query_params:
+            items = sorted(query_params.items())
+            message += '?' + '&'.join(f"{k}={v}" for k, v in items)
+        message += '\n' + nonce + '\n' + date
+        message_bytes = message.encode('utf-8')
+        key_bytes = self.key.encode('utf-8') if self.key else b''
+        digest = hmac.new(key_bytes, message_bytes, hashlib.sha1).digest()
+        hash_b64 = base64.b64encode(digest).decode('utf-8')
+        auth_header = f"{nonce}:{hash_b64}"
+        return {
+            "Authorization": auth_header,
+            "Date": date,
+            "nonce": nonce
+        }
+
     async def get_status(self):
         if not self.session:
             logging.warning(f"[SE-Remote] get_status called but session is None!")
             return None
-        url = f"{self.uri}/status"
-        headers = {"Authorization": self.key} if self.key else {}
+        # Die API erwartet den Pfad ab /vrageremote
+        method_url = "/vrageremote/status"
+        url = f"{self.uri}/vrageremote/status" if not self.uri.endswith("/vrageremote") else f"{self.uri}/status"
+        headers = self._generate_auth_headers(method_url)
         try:
             logging.info(f"[SE-Remote] [REQUEST] GET {url} headers={headers}")
             import time
