@@ -90,6 +90,12 @@ async def main():
     try:
         async with bot:
             await load_all_extensions()
+            # Slash-Commands nach dem Laden aller Cogs synchronisieren
+            try:
+                synced = await bot.tree.sync()
+                print(f"🔄 Synced {len(synced)} commands.")
+            except Exception as e:
+                print(f"❌ Command sync failed: {e}")
             await bot.start(TOKEN)
     except KeyboardInterrupt:
         print("🛑 Bot shutdown requested (KeyboardInterrupt).")
