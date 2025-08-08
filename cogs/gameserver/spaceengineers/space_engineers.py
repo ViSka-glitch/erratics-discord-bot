@@ -42,6 +42,7 @@ class SpaceEngineersCog(commands.Cog):
         logging.info("[SE-Remote] Space Engineers Cog ready.")
 
     @discord.app_commands.command(name="se_status", description="Get Space Engineers server status.")
+    @discord.app_commands.guilds(1392804912684863549)  # WELCOME_CHANNEL_ID als Beispiel-Guild-ID
     async def se_status(self, interaction: discord.Interaction):
         await se_status_command(self, interaction)
 
