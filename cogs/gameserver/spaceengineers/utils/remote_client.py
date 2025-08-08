@@ -14,6 +14,7 @@ class SpaceEngineersRemoteClient:
         self.connected = False
 
     async def connect(self):
+        logging.info(f"[SE-Remote] Attempting to connect to {self.uri}")
         try:
             # Testverbindung: Status-Endpunkt aufrufen
             resp = await self.get_status()
@@ -28,17 +29,18 @@ class SpaceEngineersRemoteClient:
             self.connected = False
 
     async def disconnect(self):
+        logging.info(f"[SE-Remote] Disconnect called for {self.uri}")
         # vrage-api verwaltet Sessions selbst, kein explizites Close nötig
         self.connected = False
 
     async def get_status(self):
+        logging.info(f"[SE-Remote] [REQUEST] GET /vrageremote/status (client={self.client})")
         try:
-            logging.info(f"[SE-Remote] [REQUEST] GET /vrageremote/status")
             resp = await self.client.status()
-            logging.info(f"[SE-Remote] [RESPONSE] {resp}")
+            logging.info(f"[SE-Remote] [RESPONSE] {type(resp)}: {resp}")
             return resp
         except Exception as e:
-            logging.error(f"[SE-Remote] Status request failed: {e}")
+            logging.error(f"[SE-Remote] Status request failed: {e}", exc_info=True)
             return None
 
 
