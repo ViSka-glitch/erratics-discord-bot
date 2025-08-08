@@ -1,4 +1,3 @@
-import json
 import discord
 
 async def se_status_command(self, interaction: discord.Interaction):
@@ -9,11 +8,9 @@ async def se_status_command(self, interaction: discord.Interaction):
     if not self.se_client.connected:
         await interaction.response.send_message("❌ Not connected to Space Engineers server.", ephemeral=True)
         return
-    await self.se_client.send_command({"Type": "Status"})
-    msg = await self.se_client.get_message(timeout=5)
-    if msg:
+    data = await self.se_client.get_status()
+    if data:
         try:
-            data = json.loads(msg)
             players = data.get("Players", [])
             await interaction.response.send_message(f"✅ SE Server online. Players: {', '.join(players) if players else 'None'}", ephemeral=True)
         except Exception as e:

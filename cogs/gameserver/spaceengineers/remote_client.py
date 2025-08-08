@@ -1,50 +1,49 @@
+
+import aiohttp
 import asyncio
-import json
-import websockets
 import logging
+
 
 class SpaceEngineersRemoteClient:
     def __init__(self, uri, key=None):
-        self.uri = uri
+        self.uri = uri.rstrip('/')
         self.key = key
-        self.ws = None
+        self.session = None
         self.connected = False
-        self._listener_task = None
-        self._message_queue = asyncio.Queue()
 
     async def connect(self):
         try:
-            self.ws = await websockets.connect(self.uri)
-            self.connected = True
-            logging.info(f"[SE-Remote] Connected to {self.uri}")
-            if self.key:
-                await self.send_command({"Type": "Auth", "Password": self.key})
-            self._listener_task = asyncio.create_task(self._listener())
+            self.session = aiohttp.ClientSession()
+            # Testverbindung: Status-Endpunkt aufrufen
+            resp = await self.get_status()
+            if resp is not None:
+                self.connected = True
+                logging.info(f"[SE-Remote] Connected to {self.uri}")
+            else:
+                self.connected = False
         except Exception as e:
             logging.error(f"[SE-Remote] Connection failed: {e}")
             self.connected = False
 
     async def disconnect(self):
-        if self.ws:
-            await self.ws.close()
+        if self.session:
+            await self.session.close()
         self.connected = False
-        if self._listener_task:
-            self._listener_task.cancel()
 
-    async def send_command(self, data):
-        if self.ws and self.connected:
-            await self.ws.send(json.dumps(data))
 
-    async def _listener(self):
-        try:
-            async for message in self.ws:
-                await self._message_queue.put(message)
-        except Exception as e:
-            logging.error(f"[SE-Remote] Listener error: {e}")
-            self.connected = False
-
-    async def get_message(self, timeout=5):
-        try:
-            return await asyncio.wait_for(self._message_queue.get(), timeout=timeout)
-        except asyncio.TimeoutError:
+    async def get_status(self):
+        if not self.session:
             return None
+        try:
+            headers = {"Authorization": self.key} if self.key else {}
+            async with self.session.get(f"{self.uri}/status", headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                else:
+                    logging.error(f"[SE-Remote] Status HTTP {resp.status}")
+                    return None
+        except Exception as e:
+            logging.error(f"[SE-Remote] Status request failed: {e}")
+            return None
+
+
