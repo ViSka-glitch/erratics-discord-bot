@@ -1,7 +1,7 @@
 
 
 import logging
-from vrage_api import VRageRemoteClient
+from vrage_api.vrage_api import VRageAPI
 
 
 
@@ -10,7 +10,7 @@ class SpaceEngineersRemoteClient:
     def __init__(self, uri, key=None):
         self.uri = uri.rstrip('/')
         self.key = key
-        self.client = VRageRemoteClient(self.uri, self.key)
+        self.client = VRageAPI(self.uri, self.key)
         self.connected = False
 
     async def connect(self):
@@ -34,9 +34,10 @@ class SpaceEngineersRemoteClient:
         self.connected = False
 
     async def get_status(self):
-        logging.info(f"[SE-Remote] [REQUEST] GET /vrageremote/status (client={self.client})")
+        logging.info(f"[SE-Remote] [REQUEST] GET /vrageremote/v1/server (client={self.client})")
         try:
-            resp = await self.client.status()
+            # get_server_info entspricht dem Status-Endpunkt
+            resp = self.client.get_server_info()
             logging.info(f"[SE-Remote] [RESPONSE] {type(resp)}: {resp}")
             return resp
         except Exception as e:
