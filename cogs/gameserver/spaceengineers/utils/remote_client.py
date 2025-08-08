@@ -7,7 +7,7 @@ from vrage_api.vrage_api import VRageAPI
 
 # Wrapper für vrage-api, um die alte Schnittstelle beizubehalten
 class SpaceEngineersRemoteClient:
-    def __init__(self, uri, key=None, api_endpoint="/vrageremote/v1"):
+    def __init__(self, uri, key=None, api_endpoint="/vrageremote"):
         self.uri = uri.rstrip('/')
         self.key = key
         self.api_endpoint = api_endpoint
