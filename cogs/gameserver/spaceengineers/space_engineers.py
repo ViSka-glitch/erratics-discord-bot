@@ -19,9 +19,21 @@ class SpaceEngineersCog(commands.Cog):
         self.status = None
         self.bg_task = self.bot.loop.create_task(self.se_connect_loop())
 
+    async def cog_unload(self):
+        # Beende Hintergrundtask und schließe die Session sauber
+        if hasattr(self, 'bg_task') and self.bg_task:
+            self.bg_task.cancel()
+            try:
+                await self.bg_task
+            except asyncio.CancelledError:
+                pass
+        await self.se_client.disconnect()
+
     async def se_connect_loop(self):
         while True:
             if not self.se_client.connected:
+                # Vorherige Session schließen, falls noch offen
+                await self.se_client.disconnect()
                 await self.se_client.connect()
             await asyncio.sleep(10)
 
