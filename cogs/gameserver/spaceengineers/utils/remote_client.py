@@ -12,8 +12,12 @@ class SpaceEngineersRemoteClient:
         self.connected = False
 
     async def connect(self):
+        logging.info(f"[SE-Remote] Attempting to connect to {self.uri} (session open: {self.session is not None})")
         try:
+            if self.session:
+                await self.disconnect()
             self.session = aiohttp.ClientSession()
+            logging.info(f"[SE-Remote] ClientSession created: {self.session}")
             # Testverbindung: Status-Endpunkt aufrufen
             resp = await self.get_status()
             if resp is not None:
@@ -21,27 +25,36 @@ class SpaceEngineersRemoteClient:
                 logging.info(f"[SE-Remote] Connected to {self.uri}")
             else:
                 self.connected = False
+                logging.warning(f"[SE-Remote] Could not connect to {self.uri} (no status response)")
         except Exception as e:
             logging.error(f"[SE-Remote] Connection failed: {e}")
             self.connected = False
 
     async def disconnect(self):
         if self.session:
+            logging.info(f"[SE-Remote] Closing ClientSession: {self.session}")
             await self.session.close()
+            logging.info(f"[SE-Remote] ClientSession closed.")
+        else:
+            logging.info(f"[SE-Remote] No ClientSession to close.")
         self.connected = False
 
 
     async def get_status(self):
         if not self.session:
+            logging.warning(f"[SE-Remote] get_status called but session is None!")
             return None
         url = f"{self.uri}/status"
         headers = {"Authorization": self.key} if self.key else {}
         try:
-            logging.info(f"[SE-Remote] GET {url} headers={headers}")
+            logging.info(f"[SE-Remote] [REQUEST] GET {url} headers={headers}")
+            import time
+            start = time.perf_counter()
             async with self.session.get(url, headers=headers, timeout=5) as resp:
+                elapsed = time.perf_counter() - start
                 text = await resp.text()
+                logging.info(f"[SE-Remote] [RESPONSE] HTTP {resp.status} in {elapsed:.3f}s | Response: {text}")
                 if resp.status == 200:
-                    logging.info(f"[SE-Remote] Status response: {text}")
                     return await resp.json()
                 else:
                     logging.error(f"[SE-Remote] Status HTTP {resp.status} | Response: {text}")

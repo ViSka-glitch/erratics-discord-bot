@@ -5,7 +5,7 @@ import asyncio
 import json
 import os
 from dotenv import load_dotenv
-from .remote_client import SpaceEngineersRemoteClient
+from .utils.remote_client import SpaceEngineersRemoteClient
 from .commands.se_status import se_status_command
 
 load_dotenv()
