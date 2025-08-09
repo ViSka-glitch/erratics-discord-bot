@@ -30,12 +30,25 @@ class SpaceEngineersCog(commands.Cog):
         await self.se_client.disconnect()
 
     async def se_connect_loop(self):
+        backoff_schedule = [10, 30, 60]
+        backoff_index = 0
         while True:
             if not self.se_client.connected:
                 # Vorherige Session schließen, falls noch offen
                 await self.se_client.disconnect()
                 await self.se_client.connect()
-            await asyncio.sleep(10)
+                # Backoff handling
+                if self.se_client.connected:
+                    backoff_index = 0
+                else:
+                    delay = backoff_schedule[min(backoff_index, len(backoff_schedule) - 1)]
+                    # Add small jitter to avoid thundering herd
+                    jitter = min(5, max(1, delay // 10))
+                    await asyncio.sleep(delay + (asyncio.get_event_loop().time() % jitter))
+                    backoff_index = min(backoff_index + 1, len(backoff_schedule) - 1)
+                    continue
+            # Healthy or already connected; poll status at a calm pace
+            await asyncio.sleep(30)
 
     @commands.Cog.listener()
     async def on_ready(self):
